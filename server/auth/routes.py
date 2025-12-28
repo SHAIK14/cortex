@@ -34,6 +34,7 @@ async def signup(request:SignupRequest):
         "note": "Save this API key - it won't be shown again!"
     }
 
+
 @router.post("/login")
 async def login(request: LoginRequest):
     try:
@@ -43,7 +44,21 @@ async def login(request: LoginRequest):
         })
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # TODO: Remove this - just for testing
+    user_id = auth_response.user.id
+    api_key_result = supabase_admin.table("api_keys")\
+        .select("key")\
+        .eq("developer_id", user_id)\
+        .eq("is_active", True)\
+        .limit(1)\
+        .execute()
+    
+    api_key = api_key_result.data[0]["key"] if api_key_result.data else None
+    
     return {
         "message": "Login successful",
-        "access_token": auth_response.session.access_token
+        "access_token": auth_response.session.access_token,
+        "api_key": api_key  # TODO: Remove after testing
     }
+

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from auth.routes import router as auth_router
+from memory.routes import router as memory_router
 
 app = FastAPI(
     title="Cortex API",
@@ -8,6 +9,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(memory_router)
 
 @app.get("/")
 async def root():
