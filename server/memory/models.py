@@ -9,3 +9,7 @@ class AddMemoryRequest(BaseModel):
     user_id: str
     conversation_id: str = None
     
+class SearchRequest(BaseModel):
+    query:str
+    user_id:str
+    limit:int = 10

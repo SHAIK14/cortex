@@ -1,13 +1,13 @@
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-from memory.models import Message, AddMemoryRequest
+from memory.models import Message, AddMemoryRequest,SearchRequest
 from auth.middleware import validate_api_key
 from memory.extract import extract_memories
 from memory.compare import find_similar_memories
 from memory.decide import decide_actions
 from memory.store import store_memory, update_memory, delete_memory
+from memory.retrieve import search_memories, get_user_memories,get_memory_by_id,delete_memory_by_id
 router = APIRouter(prefix="/memory", tags=["memory"])
 security = HTTPBearer()
 
@@ -107,3 +107,89 @@ async def add_memory(
         "extracted_count": len(facts),
         "stored_count": len([r for r in results if r["action"] != "NONE"])
     }
+    
+
+@router.post("/search")
+async def search_memory(
+    request: SearchRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Semantic search for memories.
+    Uses embeddings to find similar memories to the query.
+    """
+    api_key_record = await validate_api_key(credentials)
+    api_key_id = api_key_record["id"]
+    
+    memories = await search_memories(
+        query=request.query,
+        api_key_id=api_key_id,
+        user_id=request.user_id,
+        limit=request.limit
+    )
+    return {
+        "memories": memories,
+        "query": request.query,
+        "count": len(memories)
+    }
+
+
+@router.get("/user/{user_id}")
+async def list_user_memories(
+    user_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    List all active memories for a user.
+    No search - just returns everything.
+    """
+    api_key_record = await validate_api_key(credentials)
+    api_key_id = api_key_record["id"]
+    
+    memories = await get_user_memories(
+        api_key_id=api_key_id,
+        user_id=user_id
+    )
+    return {
+        "memories": memories,
+        "total_count": len(memories)
+    }
+
+@router.get("/{memory_id}")
+async def get_single_memory(
+    memory_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Get a single memory by ID."""
+    api_key_record = await validate_api_key(credentials)
+    api_key_id = api_key_record["id"]
+    
+    memory = await get_memory_by_id(
+        memory_id=memory_id,
+        api_key_id=api_key_id
+    )
+    
+    if not memory:
+        raise HTTPException(status_code=404, detail="Memory not found")
+    
+    return {"memory": memory}
+
+
+@router.delete("/{memory_id}")
+async def delete_single_memory(
+    memory_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Delete (archive) a memory by ID."""
+    api_key_record = await validate_api_key(credentials)
+    api_key_id = api_key_record["id"]
+    
+    deleted = await delete_memory_by_id(
+        memory_id=memory_id,
+        api_key_id=api_key_id
+    )
+    
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Memory not found")
+    
+    return {"message": "Memory deleted", "id": memory_id}
