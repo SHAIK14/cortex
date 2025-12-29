@@ -6,7 +6,7 @@ from auth.middleware import validate_api_key
 from memory.extract import extract_memories
 from memory.compare import find_similar_memories
 from memory.decide import decide_actions
-from memory.store import store_memory, update_memory, delete_memory
+from memory.store import store_memory, update_memory, delete_memory, lower_confidence
 from memory.retrieve import search_memories, get_user_memories,get_memory_by_id,delete_memory_by_id
 router = APIRouter(prefix="/memory", tags=["memory"])
 security = HTTPBearer()
@@ -99,9 +99,30 @@ async def add_memory(
             )
             results.append({"action": "DELETE+ADD", "memory": new_memory})
         
+        elif action == "CONFLICT":
+            # Lower confidence of existing memory
+            await lower_confidence(
+                memory_id=decision["target_id"],
+                new_confidence=decision["new_confidence"],
+                conversation_id=request.conversation_id
+            )
+            # Add the new fact
+            new_memory = await store_memory(
+                api_key_id=api_key_id,
+                user_id=request.user_id,
+                fact=fact,
+                conversation_id=request.conversation_id
+            )
+            results.append({
+                "action": "CONFLICT",
+                "memory": new_memory,
+                "lowered_memory_id": decision["target_id"],
+                "new_confidence": decision["new_confidence"]
+            })
+
         elif action == "NONE":
             results.append({"action": "NONE", "reasoning": decision.get("reasoning")})
-    
+
     return {
         "memories": results,
         "extracted_count": len(facts),

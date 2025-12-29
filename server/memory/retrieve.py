@@ -1,10 +1,12 @@
 from database.supabase import supabase_admin
 from embeddings.openai import generate_embedding
 from datetime import datetime, timezone
+from memory.keyword_search import keyword_search_memories
+from memory.fusion import reciprocal_rank_fusion
+from rerank.cohere import rerank_with_cohere
 
 
 def calculate_hybrid_score(memory: dict, similarity: float) -> float:
-
     # Similarity score (already 0-1)
     sim_score = similarity
     
@@ -42,39 +44,58 @@ async def search_memories(
     api_key_id: str,
     user_id: str,
     limit: int = 10,
-    threshold: float = 0.5
+    threshold: float = 0.5,
+    use_rerank: bool = True
 ) -> list[dict]:
 
+    
+    # Step 1: Vector search
     embedding = await generate_embedding(query)
-    result = supabase_admin.rpc(
+    vector_result = supabase_admin.rpc(
         "match_memories",
         {
             "query_embedding": embedding,
             "match_threshold": threshold,
-            "match_count": limit * 2,  # Fetch extra for re-ranking
+            "match_count": limit * 3,
             "p_api_key_id": api_key_id,
             "p_user_id": user_id,
         }
     ).execute()
-    memories = result.data or []
+    vector_memories = vector_result.data or []
     
-    # Apply hybrid scoring
-    for mem in memories:
-        similarity = mem.get("similarity", 0.5)
+    # Step 2: Keyword search (BM25)
+    keyword_memories = await keyword_search_memories(
+        query=query,
+        api_key_id=api_key_id,
+        user_id=user_id,
+        limit=limit * 3
+    )
+    
+    # Step 3: RRF fusion
+    fused = reciprocal_rank_fusion(vector_memories, keyword_memories)
+    
+    # Step 4: Hybrid scoring
+    for mem in fused:
+        similarity = mem.get("similarity", mem.get("rrf_score", 0.5))
         mem["hybrid_score"] = calculate_hybrid_score(mem, similarity)
     
-    # Re-rank by hybrid score (not just similarity)
-    memories.sort(key=lambda m: m["hybrid_score"], reverse=True)
-    ranked = memories[:limit]
+    fused.sort(key=lambda m: m["hybrid_score"], reverse=True)
+    candidates = fused[:limit * 2]
+    
+    # Step 5: Cohere rerank (optional)
+    if use_rerank and candidates:
+        ranked = await rerank_with_cohere(query, candidates, top_n=limit)
+    else:
+        ranked = candidates[:limit]
     
     # Update access tracking
-    for mem in ranked:
+    for mem in ranked[:limit]:
         supabase_admin.table("memories").update({
             "last_accessed_at": "now()",
             "access_count": mem.get("access_count", 0) + 1
         }).eq("id", mem["id"]).execute()
     
-    return ranked
+    return ranked[:limit]
 
 
 async def get_user_memories(
@@ -92,6 +113,7 @@ async def get_user_memories(
         .limit(limit)\
         .execute()
     return result.data or []
+
 
 async def get_memory_by_id(
     memory_id: str,
@@ -118,4 +140,3 @@ async def delete_memory_by_id(
         .eq("api_key_id", api_key_id)\
         .execute()
     return len(result.data) > 0
-

@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     supabase_key: str
     supabase_service_key: str
     openai_api_key: str
+    cohere_api_key: str
 
     class Config:
         env_file = ".env"

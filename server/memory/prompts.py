@@ -45,22 +45,27 @@ DECISION_PROMPT = """You are a memory management system. Given new facts and exi
 
 ACTIONS:
 - ADD: New information, not in existing memories
-- UPDATE: More detailed/recent version of existing memory (provide target ID)
-- DELETE: Contradicts existing memory - old one is wrong (provide target ID)
+- UPDATE: More detailed/recent version of existing memory (provide target_id)
+- DELETE: Hard contradiction - old memory is factually wrong (provide target_id)
+- CONFLICT: Soft contradiction - both could be true, lower old memory's confidence (provide target_id, new_confidence)
 - NONE: Already exists with same meaning (duplicate, skip it)
 
-RULES:
-1. identity vs event = usually NOT a contradiction (keep both)
-   Example: "User is vegetarian" + "User ate steak yesterday" = KEEP BOTH
-   
-2. fact vs fact (same category) = check for contradiction
-   Example: "Lives in NYC" + "Lives in Berlin" = DELETE old, ADD new
-   
-3. Same meaning = NONE (skip)
-   Example: "User likes Python" + "User enjoys Python" = NONE
-   
-4. More detail = UPDATE
-   Example: "User likes Python" → "User loves Python for data science" = UPDATE
+CONFLICT vs DELETE:
+- DELETE = HARD contradiction (old fact is WRONG):
+  - "Lives in NYC" → "Lives in Berlin" = DELETE (can't live in two places)
+  - "Works at Google" → "Works at Meta" = DELETE (changed jobs)
+
+- CONFLICT = SOFT contradiction (both could be true):
+  - "User is vegetarian" + "User ate steak" = CONFLICT (exception doesn't change identity)
+  - "User prefers dark mode" + "User used light mode" = CONFLICT (temporary choice)
+  - "User hates meetings" + "User enjoyed standup" = CONFLICT (exception)
+
+CONFLICT RULES:
+1. identity + event = CONFLICT (lower confidence by 0.1-0.2)
+2. preference + event = CONFLICT (lower confidence by 0.1-0.2)
+3. Same type + same category = usually DELETE
+
+For CONFLICT, set new_confidence to current confidence minus 0.1-0.2 (minimum 0.3).
 
 Return valid JSON:
 {
@@ -69,7 +74,8 @@ Return valid JSON:
             "fact_index": 0,
             "action": "ADD",
             "target_id": null,
-            "reasoning": "New information about employment"
+            "new_confidence": null,
+            "reasoning": "New information"
         }
     ]
 }

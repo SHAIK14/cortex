@@ -97,6 +97,39 @@ async def delete_memory(
     return result.data[0]
 
 
+async def lower_confidence(
+    memory_id: str,
+    new_confidence: float,
+    conversation_id: str = None
+) -> dict:
+    """Lower confidence of a memory (for soft contradictions)."""
+
+    old = supabase_admin.table("memories")\
+        .select("text, confidence")\
+        .eq("id", memory_id)\
+        .execute()
+    old_text = old.data[0]["text"] if old.data else None
+    old_confidence = old.data[0]["confidence"] if old.data else None
+
+    result = supabase_admin.table("memories")\
+        .update({
+            "confidence": new_confidence,
+            "updated_at": "now()"
+        })\
+        .eq("id", memory_id)\
+        .execute()
+
+    await record_history(
+        memory_id,
+        "CONFLICT",
+        f"{old_text} (confidence: {old_confidence})",
+        f"{old_text} (confidence: {new_confidence})",
+        conversation_id
+    )
+
+    return result.data[0]
+
+
 async def record_history(
     memory_id: str,
     action: str,
