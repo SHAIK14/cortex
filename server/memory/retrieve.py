@@ -1,17 +1,24 @@
-from database.supabase import supabase_admin
+from database.supabase import async_supabase_admin
 from embeddings.openai import generate_embedding
 from datetime import datetime, timezone
 from memory.keyword_search import keyword_search_memories
 from memory.fusion import reciprocal_rank_fusion
 from rerank.cohere import rerank_with_cohere
+from memory.repository import MemoryRepository
 
+repository = MemoryRepository()
 
 def calculate_hybrid_score(memory: dict, similarity: float) -> float:
     # Similarity score (already 0-1)
     sim_score = similarity
     
     # Recency score (decay over 30 days)
-    created = datetime.fromisoformat(memory["created_at"].replace("Z", "+00:00"))
+    created_at = memory.get("created_at")
+    if isinstance(created_at, str):
+        created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+    else:
+        created = datetime.now(timezone.utc)
+        
     days_old = (datetime.now(timezone.utc) - created).days
     recency_score = max(0, 1 - (days_old / 30))
     
@@ -48,10 +55,9 @@ async def search_memories(
     use_rerank: bool = True
 ) -> list[dict]:
 
-    
     # Step 1: Vector search
     embedding = await generate_embedding(query)
-    vector_result = supabase_admin.rpc(
+    vector_result = await async_supabase_admin.rpc(
         "match_memories",
         {
             "query_embedding": embedding,
@@ -88,12 +94,18 @@ async def search_memories(
     else:
         ranked = candidates[:limit]
     
-    # Update access tracking
+    # Update access tracking (Async)
+    import asyncio
+    update_tasks = []
     for mem in ranked[:limit]:
-        supabase_admin.table("memories").update({
-            "last_accessed_at": "now()",
-            "access_count": mem.get("access_count", 0) + 1
-        }).eq("id", mem["id"]).execute()
+        update_tasks.append(
+            async_supabase_admin.table("memories").update({
+                "last_accessed_at": datetime.now(timezone.utc).isoformat(),
+                "access_count": mem.get("access_count", 0) + 1
+            }).eq("id", mem["id"]).execute()
+        )
+    if update_tasks:
+        await asyncio.gather(*update_tasks)
     
     return ranked[:limit]
 
@@ -104,15 +116,7 @@ async def get_user_memories(
     limit: int = 50
 ) -> list[dict]:
     """List all active memories for a user (no search)."""
-    result = supabase_admin.table("memories")\
-        .select("id, text, type, category, confidence, created_at, status")\
-        .eq("api_key_id", api_key_id)\
-        .eq("user_id", user_id)\
-        .eq("status", "active")\
-        .order("created_at", desc=True)\
-        .limit(limit)\
-        .execute()
-    return result.data or []
+    return await repository.get_user_memories(api_key_id, user_id)
 
 
 async def get_memory_by_id(
@@ -120,13 +124,7 @@ async def get_memory_by_id(
     api_key_id: str
 ) -> dict | None:
     """Get a single memory by ID."""
-    result = supabase_admin.table("memories")\
-        .select("*")\
-        .eq("id", memory_id)\
-        .eq("api_key_id", api_key_id)\
-        .single()\
-        .execute()
-    return result.data
+    return await repository.get_by_id(memory_id, api_key_id)
 
 
 async def delete_memory_by_id(
@@ -134,7 +132,11 @@ async def delete_memory_by_id(
     api_key_id: str
 ) -> bool:
     """Soft delete a memory (set status to archived)."""
-    result = supabase_admin.table("memories")\
+    # Using repository.delete but repository.delete sets status to 'outdated'.
+    # Original code set it to 'archived'. Let's stick to 'outdated' as per repository design or adjust.
+    # Actually, repository.delete is more tailored for the ADD/UPDATE/DELETE flow.
+    # For a direct delete endpoint, 'archived' might be preferred.
+    result = await async_supabase_admin.table("memories")\
         .update({"status": "archived"})\
         .eq("id", memory_id)\
         .eq("api_key_id", api_key_id)\

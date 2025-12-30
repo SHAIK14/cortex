@@ -11,7 +11,7 @@ async def keyword_search_memories(
     result = supabase_admin.rpc(
         "keyword_search_memories",
         {
-            "search_query": query,
+            "query_text": query,
             "p_api_key_id": api_key_id,
             "p_user_id": user_id,
             "match_count": limit
