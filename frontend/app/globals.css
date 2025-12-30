@@ -156,18 +156,89 @@
   background-color: var(--obsidian-hover);
 }
 
+/* God-Level Surgical Effects */
+:root {
+  --primary-glow: rgba(99, 102, 241, 0.4);
+  --terminal-noise: rgba(255, 255, 255, 0.01);
+}
+
+.dark {
+  --terminal-noise: rgba(255, 255, 255, 0.02);
+}
+
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 0.95; }
+  10% { opacity: 0.9; }
+  15% { opacity: 0.95; }
+  25% { opacity: 0.98; }
+  30% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes noise {
+  0%, 100% { transform: translate(0,0); }
+  10% { transform: translate(-1%,-1%); }
+  20% { transform: translate(1%,1%); }
+  30% { transform: translate(-2%,0); }
+  40% { transform: translate(1%,2%); }
+  50% { transform: translate(-1%,-2%); }
+  60% { transform: translate(2%,1%); }
+  70% { transform: translate(-2%,1%); }
+  80% { transform: translate(1%,-1%); }
+  90% { transform: translate(0,1%); }
+}
+
+.vignette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 150px rgba(0, 0, 0, 0.4);
+  z-index: 103;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.noise-overlay {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  opacity: 0.015;
+  z-index: 104;
+  pointer-events: none;
+  animation: noise 0.5s steps(10) infinite;
+}
+
+/* Enhanced Surgical UI */
+.obsidian-card {
+  background-color: var(--obsidian-card);
+  border: 1px solid var(--obsidian-border);
+  @apply transition-all duration-500 shadow-2xl;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3), inset 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.obsidian-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 50px rgba(99, 102, 241, 0.1), inset 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
 .indigo-glow {
-  @apply shadow-[0_0_20px_rgba(99,102,241,0.15)];
+  box-shadow: 0 0 20px var(--primary-glow);
 }
 
 /* Minimalist Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background-color: var(--obsidian-border);
-  @apply rounded-full hover:bg-primary/20 transition-colors;
+  @apply rounded-none hover:bg-primary/40 transition-colors;
 }

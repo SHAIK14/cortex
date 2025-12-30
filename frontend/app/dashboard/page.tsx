@@ -50,6 +50,8 @@ const item = {
   show: { opacity: 1, x: 0 }
 };
 
+import { ScrambleText } from '@/components/ui/ScrambleText';
+
 export default function DashboardPage() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
@@ -80,7 +82,7 @@ export default function DashboardPage() {
         >
           <div className="space-y-1">
             <h2 className="text-2xl font-bold tracking-tighter text-foreground">
-              OPERATOR_{user?.email?.split('@')[0].toUpperCase() || 'ROOT'}
+              OPERATOR_<ScrambleText text={user?.email?.split('@')[0].toUpperCase() || 'ROOT'} triggerOn="load" />
             </h2>
             <div className="flex items-center gap-3 text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60">
               <span className="flex items-center gap-1.5">

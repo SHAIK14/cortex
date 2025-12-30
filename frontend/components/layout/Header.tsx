@@ -1,8 +1,10 @@
 'use client';
 
-import { useUIStore } from '@/lib/store';
+import { LogOut, Bug, Moon, Sun, Activity, Command } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore, useUIStore } from '@/lib/store';
+import { useSound } from '@/components/layout/SoundProvider';
 import { Button } from '@/components/ui/button';
-import { Bug, Moon, Sun, Activity, Command } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +13,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Logo } from '@/components/ui/logo';
 import { cn } from '@/lib/utils';
+import { ScrambleText } from '@/components/ui/ScrambleText';
 
 interface HeaderProps {
   title: string;
@@ -18,7 +21,16 @@ interface HeaderProps {
 }
 
 export function Header({ title, showDebugToggle = false }: HeaderProps) {
+  const router = useRouter();
   const { debugPanelOpen, toggleDebugPanel, theme, setTheme } = useUIStore();
+  const { logout } = useAuthStore();
+  const { playSound } = useSound();
+
+  const handleLogout = () => {
+    playSound('warp');
+    logout();
+    router.push('/');
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[var(--obsidian-border)] bg-[var(--obsidian-header)] px-6 backdrop-blur-xl">
@@ -27,7 +39,7 @@ export function Header({ title, showDebugToggle = false }: HeaderProps) {
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em]">
             <span className="text-muted-foreground/80">Systems</span>
             <span className="text-muted-foreground/50">/</span>
-            <span className="text-foreground">{title}</span>
+            <ScrambleText text={title} className="text-foreground cursor-default" />
         </div>
       </div>
 
@@ -85,6 +97,24 @@ export function Header({ title, showDebugToggle = false }: HeaderProps) {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="bg-[var(--obsidian-card)] border-[var(--obsidian-border)] text-foreground text-[10px] uppercase tracking-widest font-bold shadow-2xl">
               Cycle Environment Tone
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="h-8 w-8 rounded-md hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all group"
+              >
+                <LogOut className="h-3.5 w-3.5 text-red-500/60 group-hover:text-red-500 transition-colors" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="bg-[var(--obsidian-card)] border-[var(--obsidian-border)] text-red-500 text-[10px] uppercase tracking-widest font-bold shadow-2xl">
+              Terminate_Session
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

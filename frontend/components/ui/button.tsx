@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none text-[12px] font-bold uppercase tracking-widest transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-3.5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-1 focus-visible:ring-primary/50 relative overflow-hidden group active:scale-[0.98]",
   {
     variants: {
       variant: {
@@ -36,17 +36,26 @@ const buttonVariants = cva(
   }
 )
 
+import { useSound } from "@/components/layout/SoundProvider"
+
 function Button({
   className,
   variant = "default",
   size = "default",
   asChild = false,
+  onClick,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
   const Comp = asChild ? Slot : "button"
+  const { playSound } = useSound()
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    playSound('interaction')
+    onClick?.(e)
+  }
 
   return (
     <Comp
@@ -54,8 +63,13 @@ function Button({
       data-variant={variant}
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
+      onClick={handleClick}
       {...props}
-    />
+    >
+      {/* Surgical Interaction Layer */}
+      <span className="absolute inset-x-0 bottom-0 h-[1px] bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+      <span className="relative z-10">{props.children}</span>
+    </Comp>
   )
 }
 

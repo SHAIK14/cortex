@@ -14,12 +14,34 @@ interface ChatPanelProps {
   loading?: boolean;
 }
 
+import { useSound } from '@/components/layout/SoundProvider';
+
 export function ChatPanel({
   messages,
   selectedMessageId,
   onMessageSelect,
+  loading,
 }: ChatPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { playSound } = useSound();
+  const lastMessageCount = useRef(messages.length);
+
+  useEffect(() => {
+    if (messages.length > lastMessageCount.current) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant') {
+        playSound('extraction');
+      }
+    }
+    lastMessageCount.current = messages.length;
+  }, [messages, playSound]);
+
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => playSound('thinking'), 800);
+      return () => clearInterval(interval);
+    }
+  }, [loading, playSound]);
 
   useEffect(() => {
     if (scrollRef.current) {

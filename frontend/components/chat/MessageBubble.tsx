@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { User, Terminal } from 'lucide-react';
 import { Logo } from '@/components/ui/logo';
+import { DecryptedText } from '@/components/ui/DecryptedText';
 import type { Message } from '@/types';
 
 interface MessageBubbleProps {
@@ -59,7 +60,11 @@ export function MessageBubble({ message, isSelected, onClick }: MessageBubblePro
         </div>
         <div className="prose prose-sm dark:prose-invert max-w-none">
           <p className="text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap font-medium font-sans tracking-tight">
-            {message.content}
+            {!isUser ? (
+              <DecryptedText text={message.content} speed={20} maxIterations={5} />
+            ) : (
+              message.content
+            )}
           </p>
         </div>
       </div>

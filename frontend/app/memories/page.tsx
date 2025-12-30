@@ -6,6 +6,7 @@ import { DashboardLayout, Header } from '@/components/layout';
 import { MemoryCard, MemoryFilter } from '@/components/memories';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthStore, useMemoryStore } from '@/lib/store';
+import { NeuralBackground } from '@/components/memories/NeuralBackground';
 import { Database } from 'lucide-react';
 import type { Memory, MemoryType } from '@/types';
 
@@ -146,8 +147,7 @@ export default function MemoriesPage() {
       <Header title="Neural Vault" />
 
       <main className="min-h-screen bg-[var(--obsidian-bg)] relative overflow-hidden">
-        {/* Technical Grid Overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(var(--obsidian-border)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none opacity-20" />
+        <NeuralBackground />
         
         <div className="p-6 space-y-8 relative z-10 max-w-7xl mx-auto">
           {/* Vault Status Header */}
