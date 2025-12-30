@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Brain, Loader2 } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Logo } from '@/components/ui/logo';
 import { useAuthStore } from '@/lib/store';
 
 export default function LoginPage() {
@@ -50,14 +51,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-border bg-card">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+        {/* Ambient background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[500px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.05)_0,transparent_70%)] -z-10" />
+
+      <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-xl shadow-2xl">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Brain className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+          <Link href="/" className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/50 border border-white/5 shadow-inner group">
+            <Logo size={40} className="transition-transform group-hover:scale-110" />
+          </Link>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
             <CardDescription className="text-muted-foreground">
               Sign in to your Cortex account
             </CardDescription>
@@ -65,59 +69,65 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive animate-in fade-in slide-in-from-top-1">
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-background"
+                className="h-11 bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Password</Label>
+                <Link href="#" className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">Forgot password?</Link>
+              </div>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-background"
+                className="h-11 bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full h-11 rounded-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all font-semibold" disabled={loading}>
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
+                  Authenticating...
                 </>
               ) : (
-                'Sign in'
+                <span className="flex items-center gap-2">
+                    Sign in <ArrowRight className="h-4 w-4" />
+                </span>
               )}
             </Button>
 
-            <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/signup"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign up
-              </Link>
-            </p>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50"></span></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground tracking-tighter">New to Cortex?</span></div>
+            </div>
+
+            <Link href="/signup">
+                <Button variant="outline" className="w-full h-11 border-border/50 bg-transparent hover:bg-secondary/50 transition-all font-semibold">
+                    Create an account
+                </Button>
+            </Link>
           </form>
         </CardContent>
       </Card>

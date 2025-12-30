@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Clock, Eye } from 'lucide-react';
 import type { Memory } from '@/types';
-import { formatDistanceToNow } from '@/lib/utils';
+import { formatDistanceToNow, cn } from '@/lib/utils';
 
 interface MemoryCardProps {
   memory: Memory;
@@ -23,68 +23,79 @@ const typeColors: Record<string, string> = {
 
 export function MemoryCard({ memory, onDelete, onSelect }: MemoryCardProps) {
   return (
-    <Card className="border-border bg-card transition-colors hover:border-primary/30">
-      <CardContent className="p-4">
+    <div className="obsidian-card group relative p-5 rounded-none border border-[var(--obsidian-border)] bg-[var(--obsidian-card)] transition-all duration-300 hover:border-primary/40 hover:shadow-indigo-glow cursor-default overflow-hidden">
+      {/* Type Marker Accessory */}
+      <div className={cn("absolute top-0 right-0 h-1 w-12", 
+        memory.type === 'identity' ? 'bg-purple-500/50' : 
+        memory.type === 'preference' ? 'bg-blue-500/50' : 
+        memory.type === 'fact' ? 'bg-green-500/50' :
+        memory.type === 'event' ? 'bg-amber-500/50' : 'bg-slate-500/50'
+      )} />
+
+      <div className="flex flex-col h-full gap-4">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 space-y-2">
-            <p className="text-sm text-foreground">&quot;{memory.text}&quot;</p>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className={typeColors[memory.type] || typeColors.fact}
-              >
-                {memory.type}
-              </Badge>
-
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span className="font-medium">{(memory.confidence * 100).toFixed(0)}%</span>
-                confidence
-              </span>
-
-              {memory.category && (
-                <Badge variant="secondary" className="text-xs">
-                  {memory.category}
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatDistanceToNow(memory.created_at)}
-              </span>
-              <span className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {memory.access_count} accesses
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-1">
-            {onSelect && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onSelect(memory)}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => onDelete(memory.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
+          <Badge
+            variant="outline"
+            className={cn("text-[9px] uppercase tracking-widest font-bold px-1.5 py-0 rounded-none border-primary/20", typeColors[memory.type] || typeColors.fact)}
+          >
+            {memory.type}
+          </Badge>
+          
+          <div className="flex items-center gap-1">
+            <button 
+                onClick={() => onDelete?.(memory.id)}
+                className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all text-muted-foreground/40"
+            >
+                <Trash2 className="h-3 w-3" />
+            </button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="flex-1">
+          <p className="text-[13px] font-medium leading-relaxed text-foreground/90 font-sans tracking-tight">
+            &quot;{memory.text}&quot;
+          </p>
+        </div>
+
+        <div className="space-y-3 pt-3 border-t border-[var(--obsidian-border)]">
+          {/* Metadata Row */}
+          <div className="flex items-center justify-between text-[9px] font-mono font-bold uppercase tracking-widest text-[var(--obsidian-stat-label)]">
+            <div className="flex items-center gap-1.5">
+                <Clock className="h-2.5 w-2.5" />
+                {formatDistanceToNow(memory.created_at)}
+            </div>
+            <div className="flex items-center gap-1.5">
+                <Eye className="h-2.5 w-2.5" />
+                {memory.access_count}X_RECALL
+            </div>
+          </div>
+
+          {/* Confidence Meter */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[8px] font-bold uppercase tracking-tighter text-muted-foreground/60">
+                <span>CONFIDENCE_LEVEL</span>
+                <span className="text-primary">{(memory.confidence * 100).toFixed(0)}%</span>
+            </div>
+            <div className="h-1 w-full bg-[var(--obsidian-border)]/50 rounded-none overflow-hidden">
+                <div 
+                    className="h-full bg-primary transition-all duration-1000 ease-out"
+                    style={{ width: `${memory.confidence * 100}%` }}
+                />
+            </div>
+          </div>
+
+          {/* Entities Trace */}
+          {memory.entities && memory.entities.length > 0 && (
+            <div className="flex flex-wrap gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                {memory.entities.slice(0, 3).map((entity, i) => (
+                    <span key={i} className="text-[7px] bg-[var(--obsidian-border)] text-foreground/80 px-1 py-0.5 rounded-none uppercase font-bold tracking-tighter">
+                        {entity}
+                    </span>
+                ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

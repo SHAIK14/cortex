@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Brain, Loader2, Copy, Check } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Logo } from '@/components/ui/logo';
 import { useAuthStore } from '@/lib/store';
 
 export default function SignupPage() {
@@ -15,26 +16,12 @@ export default function SignupPage() {
   const { setUser, setAccessToken } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -53,8 +40,9 @@ export default function SignupPage() {
         throw new Error(data.detail || 'Signup failed');
       }
 
-      // Show the API key to the user
-      setApiKey(data.api_key);
+      setAccessToken(data.access_token);
+      setUser({ id: data.user_id || '', email, created_at: new Date().toISOString() });
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {
@@ -62,155 +50,82 @@ export default function SignupPage() {
     }
   };
 
-  const copyApiKey = async () => {
-    await navigator.clipboard.writeText(apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const continueToLogin = () => {
-    router.push('/login');
-  };
-
-  // Show API key success screen
-  if (apiKey) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md border-border bg-card">
-          <CardHeader className="space-y-4 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10">
-              <Check className="h-6 w-6 text-green-500" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold">Account created!</CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Save your API key - it won&apos;t be shown again
-              </CardDescription>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Your API Key</Label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm">
-                  {apiKey}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={copyApiKey}
-                  className="shrink-0"
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Use this key to authenticate API requests
-              </p>
-            </div>
-
-            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3">
-              <p className="text-sm text-yellow-500">
-                Make sure to copy your API key now. You won&apos;t be able to see it again!
-              </p>
-            </div>
-
-            <Button onClick={continueToLogin} className="w-full">
-              Continue to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-border bg-card">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-[500px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.05)_0,transparent_70%)] -z-10" />
+
+      <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-xl shadow-2xl">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Brain className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+          <Link href="/" className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/50 border border-white/5 shadow-inner group">
+            <Logo size={40} className="transition-transform group-hover:scale-110" />
+          </Link>
+          <div className="space-y-1">
+            <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Get started with Cortex memory
+              Start building with Cortex intelligence
             </CardDescription>
           </div>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive animate-in fade-in slide-in-from-top-1">
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Work Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-background"
+                className="h-11 bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-xs uppercase tracking-widest font-bold text-muted-foreground/70">Password</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Create a password"
+                placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-background"
+                className="h-11 bg-background/50 border-border/50 focus:ring-primary/20 transition-all"
               />
+              <p className="text-[10px] text-muted-foreground/60 leading-tight">By signing up, you agree to our terms of service and privacy policy.</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="bg-background"
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full h-11 rounded-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all font-semibold" disabled={loading}>
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
                   Creating account...
                 </>
               ) : (
-                'Create account'
+                <span className="flex items-center gap-2">
+                    Get Started <ArrowRight className="h-4 w-4" />
+                </span>
               )}
             </Button>
 
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <Link
-                href="/login"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50"></span></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground tracking-tighter">Already a member?</span></div>
+            </div>
+
+            <Link href="/login">
+                <Button variant="outline" className="w-full h-11 border-border/50 bg-transparent hover:bg-secondary/50 transition-all font-semibold">
+                    Sign in to your account
+                </Button>
+            </Link>
           </form>
         </CardContent>
       </Card>

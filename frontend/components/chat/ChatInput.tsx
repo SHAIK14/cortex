@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Command as CommandIcon, ArrowUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -21,8 +22,8 @@ export function ChatInput({ onSend, disabled, loading }: ChatInputProps) {
     }
   }, [message]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (message.trim() && !disabled && !loading) {
       onSend(message.trim());
       setMessage('');
@@ -32,36 +33,52 @@ export function ChatInput({ onSend, disabled, loading }: ChatInputProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleSubmit();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-border bg-card p-4">
-      <div className="flex items-end gap-2">
+    <div className="relative group">
+      <form onSubmit={handleSubmit} className="relative">
         <textarea
           ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message... (Shift+Enter for new line)"
-          disabled={disabled || loading}
+          placeholder="ENTER_COMMAND_>"
           rows={1}
-          className="flex-1 resize-none rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!message.trim() || disabled || loading}
-          className="h-11 w-11 shrink-0"
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
+          className={cn(
+            "w-full resize-none border border-primary/20 bg-[var(--obsidian-bg)] py-4 pl-5 pr-24 text-[13px] font-mono leading-relaxed text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/50 transition-all duration-300 disabled:opacity-50 min-h-[56px] shadow-[0_0_15px_rgba(99,102,241,0.05)]",
+            "hover:border-primary/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.08)]",
+            message.trim() && "border-primary/40 shadow-primary/10"
           )}
-        </Button>
-      </div>
-    </form>
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-1.5 opacity-20 group-focus-within:opacity-40 transition-opacity">
+                <CommandIcon className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-bold">ENTER</span>
+            </div>
+            <Button
+                type="submit"
+                size="icon"
+                disabled={!message.trim() || disabled || loading}
+                className={cn(
+                    "h-8 w-8 rounded bg-primary hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/20",
+                    !message.trim() && "bg-[var(--obsidian-card)] text-muted-foreground/40"
+                )}
+            >
+                {loading ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                    <ArrowUp className="h-4 w-4" />
+                )}
+            </Button>
+        </div>
+      </form>
+      
+      {/* Decorative Input Bottom Line */}
+      <div className="absolute bottom-0 left-0 h-0.5 bg-primary/40 transition-all duration-500 origin-left" style={{ width: message.trim() ? '100%' : '0%' }} />
+    </div>
   );
 }

@@ -12,7 +12,8 @@ import { ExtractedFacts } from './ExtractedFacts';
 import { DecisionDisplay } from './DecisionDisplay';
 import { RetrievedMemories } from './RetrievedMemories';
 import type { DebugInfo, SessionStats } from '@/types';
-import { Clock, Coins, Cpu, Database, Brain, GitBranch } from 'lucide-react';
+import { Clock, Coins, Cpu, Database, Brain, GitBranch, Activity, Zap, Layers } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DebugPanelProps {
   debugInfo?: DebugInfo;
@@ -21,170 +22,110 @@ interface DebugPanelProps {
 
 export function DebugPanel({ debugInfo, sessionStats }: DebugPanelProps) {
   return (
-    <div className="flex h-full flex-col border-l border-border bg-card">
-      <div className="border-b border-border p-4">
-        <h2 className="text-sm font-semibold text-foreground">Debug Panel</h2>
-        <p className="text-xs text-muted-foreground">
-          Real-time memory extraction info
-        </p>
-      </div>
-
+    <div className="flex h-full flex-col bg-[var(--obsidian-bg)] font-mono">
       <ScrollArea className="flex-1">
-        <div className="p-4">
-          <Accordion type="multiple" defaultValue={['message', 'facts', 'decisions', 'memories', 'session']} className="space-y-2">
-            {/* Current Message Stats */}
-            {debugInfo && (
-              <AccordionItem value="message" className="border-border">
-                <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="h-4 w-4 text-muted-foreground" />
-                    This Message
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-3 gap-3 pt-2">
-                    <div className="rounded-lg border border-border bg-background/50 p-3">
-                      <p className="text-xs text-muted-foreground">Tokens In</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {debugInfo.tokens_in}
-                      </p>
+        <div className="divide-y divide-[var(--obsidian-border)]">
+          
+          {/* Operational Metrics Section */}
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+                <Layers className="h-3 w-3 text-primary" />
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/80">System_Metrics</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+                {[
+                    { label: 'RT_LATENCY', value: debugInfo ? `${debugInfo.latency_ms}ms` : '---', icon: Zap },
+                    { label: 'TOKEN_LOAD', value: debugInfo ? (debugInfo.tokens_in + debugInfo.tokens_out) : '---', icon: Cpu },
+                    { label: 'SESSION_COST', value: `$${sessionStats.total_cost.toFixed(5)}`, icon: Coins },
+                    { label: 'MEM_COUNT', value: sessionStats.memories_created, icon: Database },
+                ].map((m, i) => (
+                    <div key={i} className="p-3 bg-[var(--obsidian-card)] border border-[var(--obsidian-border)] rounded group hover:border-primary/30 transition-colors shadow-sm">
+                        <div className="flex items-center gap-2 mb-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                            <m.icon className="h-2.5 w-2.5 text-primary" />
+                            <span className="text-[8px] font-bold uppercase tracking-widest">{m.label}</span>
+                        </div>
+                        <p className="text-xs font-bold text-foreground">{m.value}</p>
                     </div>
-                    <div className="rounded-lg border border-border bg-background/50 p-3">
-                      <p className="text-xs text-muted-foreground">Tokens Out</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {debugInfo.tokens_out}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border bg-background/50 p-3">
-                      <p className="text-xs text-muted-foreground">Latency</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {debugInfo.latency_ms}ms
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 text-sm">
-                    <Coins className="h-4 w-4 text-amber-500" />
-                    <span className="text-muted-foreground">Cost:</span>
-                    <span className="font-mono text-foreground">
-                      ${debugInfo.cost.toFixed(6)}
-                    </span>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                ))}
+            </div>
+          </div>
 
-            {/* Extracted Facts */}
-            <AccordionItem value="facts" className="border-border">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+          {/* Trace Accordion */}
+          <Accordion type="multiple" defaultValue={['facts', 'decisions', 'memories']} className="px-0">
+            
+            {/* Knowledge Distilled */}
+            <AccordionItem value="facts" className="border-none px-4 group">
+              <AccordionTrigger className="text-[10px] font-bold uppercase tracking-widest hover:no-underline py-4 text-muted-foreground group-data-[state=open]:text-foreground transition-colors">
                 <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-muted-foreground" />
-                  Extracted Facts
+                  <Brain className="h-3 w-3 text-primary" />
+                  Fact_Extraction
                   {debugInfo && debugInfo.extracted_facts.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto">
-                      {debugInfo.extracted_facts.length}
-                    </Badge>
+                    <span className="ml-2 text-[9px] opacity-40">({debugInfo.extracted_facts.length})</span>
                   )}
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="pt-2">
+              <AccordionContent className="pb-6">
                 {debugInfo ? (
                   <ExtractedFacts facts={debugInfo.extracted_facts} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Send a message to see extracted facts
-                  </p>
+                  <div className="py-8 text-center border border-dashed border-[var(--obsidian-border)] rounded opacity-40">
+                    <p className="text-[9px] font-bold uppercase tracking-widest">Awaiting Trace_</p>
+                  </div>
                 )}
               </AccordionContent>
             </AccordionItem>
 
             {/* Decisions */}
-            <AccordionItem value="decisions" className="border-border">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+            <AccordionItem value="decisions" className="border-none px-4 group">
+              <AccordionTrigger className="text-[10px] font-bold uppercase tracking-widest hover:no-underline py-4 text-muted-foreground group-data-[state=open]:text-foreground transition-colors">
                 <div className="flex items-center gap-2">
-                  <GitBranch className="h-4 w-4 text-muted-foreground" />
-                  Decisions
-                  {debugInfo && debugInfo.decisions.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto">
-                      {debugInfo.decisions.length}
-                    </Badge>
-                  )}
+                  <GitBranch className="h-3 w-3 text-primary" />
+                  Neural_Pathways
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="pt-2">
+              <AccordionContent className="pb-6">
                 {debugInfo ? (
                   <DecisionDisplay decisions={debugInfo.decisions} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Send a message to see decisions
-                  </p>
+                   <div className="py-8 text-center border border-dashed border-[var(--obsidian-border)] rounded opacity-40">
+                    <p className="text-[9px] font-bold uppercase tracking-widest">No Active Decision_</p>
+                  </div>
                 )}
               </AccordionContent>
             </AccordionItem>
 
-            {/* Retrieved Memories */}
-            <AccordionItem value="memories" className="border-border">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
+            {/* Memories */}
+            <AccordionItem value="memories" className="border-none px-4 group">
+              <AccordionTrigger className="text-[10px] font-bold uppercase tracking-widest hover:no-underline py-4 text-muted-foreground group-data-[state=open]:text-foreground transition-colors">
                 <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-muted-foreground" />
-                  Retrieved Memories
-                  {debugInfo && debugInfo.retrieved_memories.length > 0 && (
-                    <Badge variant="secondary" className="ml-auto">
-                      {debugInfo.retrieved_memories.length}
-                    </Badge>
-                  )}
+                  <Database className="h-3 w-3 text-primary" />
+                  Context_Recall
                 </div>
               </AccordionTrigger>
-              <AccordionContent className="pt-2">
+              <AccordionContent className="pb-6">
                 {debugInfo ? (
                   <RetrievedMemories memories={debugInfo.retrieved_memories} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Send a message to see retrieved memories
-                  </p>
+                   <div className="py-8 text-center border border-dashed border-[var(--obsidian-border)] rounded opacity-40">
+                    <p className="text-[9px] font-bold uppercase tracking-widest">Zero Recall Detected_</p>
+                  </div>
                 )}
               </AccordionContent>
             </AccordionItem>
 
-            {/* Session Stats */}
-            <AccordionItem value="session" className="border-border">
-              <AccordionTrigger className="text-sm font-medium hover:no-underline">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Session Stats
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <div className="rounded-lg border border-border bg-background/50 p-3">
-                    <p className="text-xs text-muted-foreground">Total Tokens</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      {sessionStats.total_tokens.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background/50 p-3">
-                    <p className="text-xs text-muted-foreground">Total Cost</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      ${sessionStats.total_cost.toFixed(4)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background/50 p-3">
-                    <p className="text-xs text-muted-foreground">Memories Created</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      {sessionStats.memories_created}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background/50 p-3">
-                    <p className="text-xs text-muted-foreground">Messages</p>
-                    <p className="text-lg font-semibold text-foreground">
-                      {sessionStats.message_count}
-                    </p>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
           </Accordion>
         </div>
       </ScrollArea>
+      
+      {/* Footer Branding */}
+      <div className="p-4 border-t border-[var(--obsidian-border)] flex items-center justify-between opacity-50">
+        <span className="text-[8px] font-bold tracking-[0.3em] uppercase">System_Active</span>
+        <div className="flex items-center gap-1.5">
+            <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+            <span className="text-[8px] font-bold uppercase tracking-widest leading-none pt-0.5">X-Link Established</span>
+        </div>
+      </div>
     </div>
   );
 }

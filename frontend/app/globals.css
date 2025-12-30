@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,8 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Geist', sans-serif;
+  --font-mono: 'Geist Mono', monospace;
+  
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -16,11 +18,7 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -37,127 +35,139 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 }
 
-/* Cortex Dark Theme - Linear/Vercel inspired */
 :root {
-  --radius: 0.5rem;
+  /* Obsidian & Indigo Theme - Elite Developer Aesthetic (Dark Mode) */
+  --background: #020202;
+  --foreground: #f8fafc;
 
-  /* Dark mode as default - developer preference */
-  --background: #0a0a0a;
-  --foreground: #fafafa;
+  --card: #080808;
+  --card-foreground: #f8fafc;
 
-  --card: #141414;
-  --card-foreground: #fafafa;
+  --popover: #080808;
+  --popover-foreground: #f8fafc;
 
-  --popover: #141414;
-  --popover-foreground: #fafafa;
-
-  --primary: #3b82f6;
+  --primary: #6366f1; /* Sharp Indigo */
   --primary-foreground: #ffffff;
 
-  --secondary: #1f1f1f;
-  --secondary-foreground: #fafafa;
+  --secondary: #0f172a;
+  --secondary-foreground: #f8fafc;
 
-  --muted: #262626;
-  --muted-foreground: #a1a1aa;
+  --muted: #0f172a;
+  --muted-foreground: #64748b;
 
-  --accent: #1f1f1f;
-  --accent-foreground: #fafafa;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
 
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
-  --success: #22c55e;
-  --success-foreground: #ffffff;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #6366f1;
 
-  --warning: #f59e0b;
-  --warning-foreground: #000000;
-
-  --border: #262626;
-  --input: #262626;
-  --ring: #3b82f6;
-
-  --chart-1: #3b82f6;
-  --chart-2: #22c55e;
-  --chart-3: #f59e0b;
-  --chart-4: #ef4444;
-  --chart-5: #8b5cf6;
-
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #fafafa;
-  --sidebar-primary: #3b82f6;
+  --sidebar: #020202;
+  --sidebar-foreground: #94a3b8;
+  --sidebar-primary: #6366f1;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1f1f1f;
-  --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #262626;
-  --sidebar-ring: #3b82f6;
+  --sidebar-accent: #0f172a;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #121212;
+  --sidebar-ring: #6366f1;
+
+  /* Custom Obsidian Semantic Tokens - Dark */
+  --obsidian-bg: #020202;
+  --obsidian-card: #050505;
+  --obsidian-border: #121212;
+  --obsidian-header: rgba(2, 2, 2, 0.6);
+  --obsidian-hover: rgba(255, 255, 255, 0.03);
+  --obsidian-badge-border: rgba(255, 255, 255, 0.1);
+  --obsidian-stat-label: rgba(248, 250, 252, 0.3);
 }
 
-/* Light mode override if needed */
 .light {
   --background: #ffffff;
-  --foreground: #0a0a0a;
+  --foreground: #020617;
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #020617;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary: #3b82f6;
+  --popover-foreground: #020617;
+  --primary: #6366f1; /* Consistent indigo accent */
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #0a0a0a;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #f4f4f5;
-  --accent-foreground: #0a0a0a;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --sidebar: #fafafa;
-  --sidebar-foreground: #0a0a0a;
-  --sidebar-border: #e4e4e7;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f8fafc;
+  --accent-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #6366f1;
+  
+  --sidebar: #f8fafc;
+  --sidebar-foreground: #64748b;
+  --sidebar-border: #e2e8f0;
+
+  /* Custom Obsidian Semantic Tokens - Light */
+  --obsidian-bg: #ffffff;
+  --obsidian-card: #f9fafb;
+  --obsidian-border: #e5e7eb;
+  --obsidian-header: rgba(255, 255, 255, 0.8);
+  --obsidian-hover: rgba(0, 0, 0, 0.02);
+  --obsidian-badge-border: rgba(0, 0, 0, 0.05);
+  --obsidian-stat-label: rgba(2, 6, 23, 0.5);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/20 selection:text-primary;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans tracking-tight font-semibold;
   }
 }
 
-/* Custom scrollbar for dark theme */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Legendary Effects */
+.glass {
+  @apply bg-background/70 backdrop-blur-2xl border border-border/20;
 }
 
+.glass-card {
+  @apply bg-card/60 backdrop-blur-xl border border-border/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)];
+}
+
+.obsidian-card {
+  background-color: var(--obsidian-card);
+  border: 1px solid var(--obsidian-border);
+  @apply transition-all duration-500 shadow-2xl;
+}
+
+.obsidian-card:hover {
+  border-color: var(--ring);
+  background-color: var(--obsidian-hover);
+}
+
+.indigo-glow {
+  @apply shadow-[0_0_20px_rgba(99,102,241,0.15)];
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #262626;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
-/* Selection color */
-::selection {
-  background: rgba(59, 130, 246, 0.3);
+  background-color: var(--obsidian-border);
+  @apply rounded-full hover:bg-primary/20 transition-colors;
 }
