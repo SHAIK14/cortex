@@ -43,9 +43,15 @@ async def login(request: LoginRequest):
             "password": request.password
         })
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # TODO: Remove this - just for testing
+        print(f"Login error: {type(e).__name__}: {e}")  # Debug logging
+        raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")
+
+    if not auth_response.user:
+        raise HTTPException(status_code=401, detail="Login failed - no user returned")
+
+    if not auth_response.session:
+        raise HTTPException(status_code=401, detail="Login failed - no session returned")
+
     user_id = auth_response.user.id
     api_key_result = supabase_admin.table("api_keys")\
         .select("key")\
