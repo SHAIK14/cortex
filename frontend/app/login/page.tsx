@@ -13,6 +13,7 @@ import { NeuralBackground } from '@/components/memories/NeuralBackground';
 import { ScrambleText } from '@/components/ui/ScrambleText';
 import { useSound } from '@/components/layout/SoundProvider';
 import { motion } from 'framer-motion';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();

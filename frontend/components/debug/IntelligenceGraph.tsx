@@ -135,17 +135,25 @@ export function IntelligenceGraph({ debugInfo }: IntelligenceGraphProps) {
           <div className="p-3 bg-[var(--obsidian-card)]/50 border border-[var(--obsidian-border)] rounded-sm backdrop-blur-md">
              <div className="flex items-center gap-2 mb-1.5 opacity-40">
                 <Zap className="h-2.5 w-2.5 text-primary" />
-                <span className="text-[8px] font-bold uppercase tracking-widest">TRACE_INTEGRITY</span>
+                <span className="text-[8px] font-bold uppercase tracking-widest">EXTRACTED_FACTS</span>
              </div>
-             <p className="text-[10px] font-mono font-bold text-green-500 uppercase tracking-tighter">OPTIMAL_LINK_0.984</p>
+             <p className={cn(
+               "text-[10px] font-mono font-bold uppercase tracking-tighter",
+               debugInfo && debugInfo.extracted_facts.length > 0 ? "text-green-500" : "text-muted-foreground/50"
+             )}>
+               {debugInfo ? `${debugInfo.extracted_facts.length}_FACTS` : 'AWAITING_INPUT'}
+             </p>
           </div>
           <div className="p-3 bg-[var(--obsidian-card)]/50 border border-[var(--obsidian-border)] rounded-sm backdrop-blur-md">
              <div className="flex items-center gap-2 mb-1.5 opacity-40">
                 <GitBranch className="h-2.5 w-2.5 text-primary" />
-                <span className="text-[8px] font-bold uppercase tracking-widest">NEURAL_DENSITY</span>
+                <span className="text-[8px] font-bold uppercase tracking-widest">MEMORY_OPS</span>
              </div>
-             <p className="text-[10px] font-mono font-bold text-primary uppercase tracking-tighter">
-                {debugInfo ? debugInfo.extracted_facts.length + debugInfo.retrieved_memories.length : 0}X_WEIGHTS
+             <p className={cn(
+               "text-[10px] font-mono font-bold uppercase tracking-tighter",
+               debugInfo && debugInfo.decisions.length > 0 ? "text-primary" : "text-muted-foreground/50"
+             )}>
+                {debugInfo ? `${debugInfo.decisions.length}_DECISIONS` : 'IDLE'}
              </p>
           </div>
       </div>

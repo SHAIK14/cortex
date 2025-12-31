@@ -10,13 +10,14 @@ import { DebugPanel } from '@/components/debug/DebugPanel';
 import { Button } from '@/components/ui/button';
 import { useAuthStore, useUIStore, useChatStore, useConfigStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { 
-  Terminal, 
-  Activity, 
-  ShieldCheck, 
-  Settings, 
-  ChevronRight, 
-  Cpu, 
+import { api } from '@/lib/api';
+import {
+  Terminal,
+  Activity,
+  ShieldCheck,
+  Settings,
+  ChevronRight,
+  Cpu,
   Database,
   Command as CommandIcon,
   Search,
@@ -27,13 +28,20 @@ import {
   Trash2,
   ShieldAlert
 } from 'lucide-react';
-import type { Message, DebugInfo } from '@/types';
+import type { Message, DebugInfo, Credentials } from '@/types';
 
 export default function PlaygroundPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, accessToken } = useAuthStore();
   const { debugPanelOpen, toggleDebugPanel } = useUIStore();
   const { apiConfig } = useConfigStore();
+
+  // Set access token for API calls
+  useEffect(() => {
+    if (accessToken) {
+      api.setAccessToken(accessToken);
+    }
+  }, [accessToken]);
   const {
     messages,
     sessionStats,
@@ -55,7 +63,7 @@ export default function PlaygroundPage() {
 
   if (!isAuthenticated) return null;
 
-  const hasApiKeys = apiConfig.openai_key && apiConfig.supabase_url;
+  const hasApiKeys = api.hasValidCredentials(apiConfig);
 
   const handleSendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -69,41 +77,61 @@ export default function PlaygroundPage() {
     setStreaming(true);
 
     try {
-      // Simulate API Trace
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Build credentials from config
+      const credentials = api.buildCredentials(apiConfig);
 
-      const mockDebug: DebugInfo = {
-        tokens_in: 42,
-        tokens_out: 86,
-        latency_ms: 184,
-        cost: 0.00018,
-        extracted_facts: [
-            { text: "User prefers dark themes", type: "preference", confidence: 0.98, category: "UI" }
-        ],
-        decisions: [
-            { action: "ADD", reason: "Identified new stable user preference" }
-        ],
-        retrieved_memories: []
+      // Call chat endpoint - retrieves memories, generates response, extracts facts
+      const response = await api.chat(credentials, content);
+
+      // Build debug info from API response
+      const debugInfo: DebugInfo = {
+        latency_ms: response.debug_info.latency_ms,
+        tokens_in: response.debug_info.tokens_in,
+        tokens_out: response.debug_info.tokens_out,
+        extracted_facts: response.debug_info.extracted_facts.map(f => ({
+          text: f.text,
+          type: f.type,
+          confidence: f.confidence,
+          category: f.category,
+        })),
+        decisions: response.debug_info.decisions.map(d => ({
+          action: d.action,
+          reasoning: d.reasoning,
+          target_id: d.target_id,
+          new_confidence: d.new_confidence,
+        })),
+        retrieved_memories: response.retrieved_memories,
       };
 
-      setCurrentDebug(mockDebug);
+      setCurrentDebug(debugInfo);
 
+      // Display the actual LLM response
       const assistantMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         role: 'assistant',
-        content: `Intelligence processed. Extracted 1 new fact and synchronized with neural graph. Path latency: 184ms.`,
+        content: response.response,
         timestamp: new Date(),
       };
       addMessage(assistantMessage);
 
+      // Count stored memories (non-NONE decisions)
+      const storedCount = response.debug_info.decisions.filter(
+        d => d.action !== 'NONE'
+      ).length;
+
       updateStats({
-        total_tokens: sessionStats.total_tokens + 128,
-        total_cost: sessionStats.total_cost + 0.00018,
-        memories_created: sessionStats.memories_created + 1,
+        memories_created: sessionStats.memories_created + storedCount,
         message_count: sessionStats.message_count + 2,
       });
     } catch (error) {
-      console.error('Extraction error:', error);
+      console.error('Chat error:', error);
+      const errorMessage: Message = {
+        id: `msg_${Date.now() + 1}`,
+        role: 'assistant',
+        content: `ERROR> ${error instanceof Error ? error.message : 'Processing failed'}`,
+        timestamp: new Date(),
+      };
+      addMessage(errorMessage);
     } finally {
       setStreaming(false);
     }
@@ -123,7 +151,7 @@ export default function PlaygroundPage() {
     <DashboardLayout>
       <Header title="Neural Terminal" showDebugToggle />
 
-      <main className="flex h-[calc(100vh-3.5rem)] overflow-hidden bg-[var(--obsidian-bg)]">
+      <main className="flex-1 flex overflow-hidden bg-[var(--obsidian-bg)] min-h-0">
         
         {/* Terminal Area */}
         <div className={cn(
@@ -198,7 +226,7 @@ export default function PlaygroundPage() {
               animate={{ width: '40%', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="h-full border-l border-[var(--obsidian-border)] bg-[var(--obsidian-bg)] flex flex-col"
+              className="h-full border-l border-[var(--obsidian-border)] bg-[var(--obsidian-bg)] flex flex-col min-h-0 overflow-hidden"
             >
               <div className="h-10 border-b border-[var(--obsidian-border)] flex items-center justify-between px-4 bg-[var(--obsidian-card)]">
                 <div className="flex items-center gap-2">
@@ -214,7 +242,7 @@ export default function PlaygroundPage() {
                     <Minimize2 className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </div>
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-0">
                 <DebugPanel debugInfo={currentDebug} sessionStats={sessionStats} />
               </div>
             </motion.div>

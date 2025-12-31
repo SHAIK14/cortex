@@ -1,34 +1,73 @@
 import type {
   Memory,
-  ExtractedFact,
-  Decision,
+  Credentials,
+  AddMemoryResponse,
+  SearchMemoryResponse,
+  ListMemoriesResponse,
+  StatsResponse,
+  AuthResponse,
   RetrievedMemory,
-  DebugInfo
+  ChatResponse,
 } from '@/types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface ApiOptions {
-  apiKey?: string;
-  userId?: string;
-}
-
+/**
+ * Cortex API Client
+ *
+ * All memory endpoints require:
+ * - JWT token in Authorization header (from login)
+ * - Credentials object in request body (user's API keys)
+ */
 class CortexAPI {
-  private apiKey: string = '';
-  private userId: string = 'playground_user';
+  private accessToken: string = '';
 
-  setCredentials(apiKey: string, userId: string = 'playground_user') {
-    this.apiKey = apiKey;
-    this.userId = userId;
+  /**
+   * Set the JWT access token for authentication
+   */
+  setAccessToken(token: string) {
+    this.accessToken = token;
   }
 
+  /**
+   * Clear authentication
+   */
+  clearAuth() {
+    this.accessToken = '';
+  }
+
+  /**
+   * Check if user has valid credentials configured
+   */
+  hasValidCredentials(config: Partial<Credentials>): boolean {
+    return !!(config.openai_key && config.supabase_url && config.supabase_key);
+  }
+
+  /**
+   * Build credentials object from config
+   */
+  buildCredentials(config: Partial<Credentials>): Credentials {
+    if (!config.openai_key || !config.supabase_url || !config.supabase_key) {
+      throw new Error('Missing required credentials. Please configure API keys in Settings.');
+    }
+    return {
+      openai_key: config.openai_key,
+      supabase_url: config.supabase_url,
+      supabase_key: config.supabase_key,
+      cohere_key: config.cohere_key,
+    };
+  }
+
+  /**
+   * Make authenticated request to API
+   */
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
+      ...(this.accessToken && { Authorization: `Bearer ${this.accessToken}` }),
       ...options.headers,
     };
 
@@ -39,80 +78,149 @@ class CortexAPI {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-      throw new Error(error.detail || 'Request failed');
+      throw new Error(error.detail || `Request failed: ${response.status}`);
     }
 
     return response.json();
   }
 
-  // Memory operations
-  async addMemory(conversation: { role: string; content: string }[]): Promise<{
-    extracted_facts: ExtractedFact[];
-    decisions: Decision[];
-    debug: DebugInfo;
-  }> {
+  // ============================================
+  // AUTH ENDPOINTS (no credentials needed)
+  // ============================================
+
+  async signup(email: string, password: string): Promise<AuthResponse> {
+    return this.request('/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async login(email: string, password: string): Promise<AuthResponse> {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async refreshToken(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
+    return this.request('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+  }
+
+  // ============================================
+  // MEMORY ENDPOINTS (requires credentials)
+  // ============================================
+
+  /**
+   * Add memories from a conversation
+   */
+  async addMemory(
+    credentials: Credentials,
+    messages: { role: string; content: string }[],
+    conversationId?: string
+  ): Promise<AddMemoryResponse> {
     return this.request('/memory/add', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: this.userId,
-        conversation,
+        credentials,
+        messages,
+        conversation_id: conversationId,
       }),
     });
   }
 
-  async searchMemories(query: string, limit: number = 10): Promise<RetrievedMemory[]> {
+  /**
+   * Search memories
+   */
+  async searchMemories(
+    credentials: Credentials,
+    query: string,
+    limit: number = 10
+  ): Promise<SearchMemoryResponse> {
     return this.request('/memory/search', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: this.userId,
+        credentials,
         query,
         limit,
       }),
     });
   }
 
-  async listMemories(): Promise<Memory[]> {
-    return this.request(`/users/${this.userId}/memories`);
-  }
-
-  async getMemory(id: string): Promise<Memory> {
-    return this.request(`/memory/${id}`);
-  }
-
-  async deleteMemory(id: string): Promise<void> {
-    return this.request(`/memory/${id}`, {
-      method: 'DELETE',
+  /**
+   * List all memories for the authenticated user
+   */
+  async listMemories(credentials: Credentials): Promise<ListMemoriesResponse> {
+    return this.request('/memory/list', {
+      method: 'POST',
+      body: JSON.stringify({ credentials }),
     });
   }
 
-  // Chat with memory (combined endpoint)
+  /**
+   * Get a single memory by ID
+   */
+  async getMemory(credentials: Credentials, memoryId: string): Promise<{ memory: Memory }> {
+    return this.request(`/memory/${memoryId}`, {
+      method: 'POST',
+      body: JSON.stringify({ credentials }),
+    });
+  }
+
+  /**
+   * Delete a memory
+   */
+  async deleteMemory(credentials: Credentials, memoryId: string): Promise<{ message: string; id: string }> {
+    return this.request(`/memory/${memoryId}/delete`, {
+      method: 'POST',
+      body: JSON.stringify({ credentials }),
+    });
+  }
+
+  /**
+   * Get memory statistics
+   */
+  async getStats(credentials: Credentials): Promise<StatsResponse> {
+    return this.request('/memory/stats', {
+      method: 'POST',
+      body: JSON.stringify({ credentials }),
+    });
+  }
+
+  /**
+   * Chat with memory-augmented context
+   * Retrieves relevant memories, generates response, and extracts new facts
+   */
   async chat(
-    messages: { role: string; content: string }[],
-    systemPrompt?: string
-  ): Promise<{
-    response: string;
-    debug: DebugInfo;
-  }> {
-    return this.request('/chat', {
+    credentials: Credentials,
+    message: string,
+    options?: {
+      conversationId?: string;
+      retrieveK?: number;
+      extractMemories?: boolean;
+    }
+  ): Promise<ChatResponse> {
+    return this.request('/memory/chat', {
       method: 'POST',
       body: JSON.stringify({
-        user_id: this.userId,
-        messages,
-        system_prompt: systemPrompt,
+        credentials,
+        message,
+        conversation_id: options?.conversationId,
+        retrieve_k: options?.retrieveK ?? 5,
+        extract_memories: options?.extractMemories ?? true,
       }),
     });
   }
 
-  // Stats
-  async getStats(): Promise<{
-    total_memories: number;
-    total_chats: number;
-    total_cost: number;
-  }> {
-    return this.request('/stats');
-  }
+  // ============================================
+  // UTILITY ENDPOINTS
+  // ============================================
 
-  // Health check
+  /**
+   * Health check (no auth needed)
+   */
   async health(): Promise<{ status: string }> {
     return this.request('/health');
   }

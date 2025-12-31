@@ -1,29 +1,41 @@
-from fastapi import HTTPException
-
+from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from database.supabase import async_supabase_admin
+from database.supabase import auth_supabase
 
 security = HTTPBearer()
 
-async def validate_api_key(credentials: HTTPAuthorizationCredentials) -> dict:
-    """Validate API key and return api_key record"""
-    api_key = credentials.credentials
-    if not api_key.startswith("ctx_"):
-        raise HTTPException(status_code=401, detail="Invalid API key format")
-        
-    result = await async_supabase_admin.table("api_keys")\
-        .select("*")\
-        .eq("key", api_key)\
-        .eq("is_active", True)\
-        .execute()
-        
-    if not result.data:
-        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
-    
-    api_key_record = result.data[0]
-    await async_supabase_admin.table("api_keys")\
-        .update({"last_used_at": "now()"})\
-        .eq("id", api_key_record["id"])\
-        .execute()
-        
-    return api_key_record
+
+async def get_current_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> str:
+    """
+    Validate Supabase Auth JWT and extract user_id.
+
+    This validates against YOUR Supabase Auth (not the user's database).
+    The JWT contains the user.id from when they logged in.
+
+    Returns:
+        user_id (str): The authenticated user's ID
+
+    Raises:
+        HTTPException 401: If token is invalid or expired
+    """
+    token = credentials.credentials
+
+    try:
+        # Verify the JWT with YOUR Supabase Auth
+        user_response = auth_supabase.auth.get_user(token)
+
+        if not user_response or not user_response.user:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired token"
+            )
+
+        return user_response.user.id
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Authentication failed: {str(e)}"
+        )

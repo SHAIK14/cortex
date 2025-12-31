@@ -4,7 +4,7 @@ import { DecisionDisplay } from './DecisionDisplay';
 import { RetrievedMemories } from './RetrievedMemories';
 import { IntelligenceGraph } from './IntelligenceGraph';
 import type { DebugInfo, SessionStats } from '@/types';
-import { Coins, Cpu, Database, Brain, GitBranch, Zap, Layers } from 'lucide-react';
+import { Coins, Cpu, Database, Brain, GitBranch, Zap, Layers, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 
 interface DebugPanelProps {
   debugInfo?: DebugInfo;
@@ -13,7 +13,7 @@ interface DebugPanelProps {
 
 export function DebugPanel({ debugInfo, sessionStats }: DebugPanelProps) {
   return (
-    <div className="flex h-full flex-col bg-[var(--obsidian-bg)] font-mono overflow-hidden">
+    <div className="flex flex-1 flex-col bg-[var(--obsidian-bg)] font-mono overflow-hidden min-h-0">
       <div className="h-1/2 border-b border-[var(--obsidian-border)] relative">
          <IntelligenceGraph debugInfo={debugInfo} />
       </div>
@@ -27,12 +27,14 @@ export function DebugPanel({ debugInfo, sessionStats }: DebugPanelProps) {
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/80">Operational_Metrics</h3>
             </div>
             
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 {[
-                    { label: 'RT_LATENCY', value: debugInfo ? `${debugInfo.latency_ms}ms` : '---', icon: Zap },
-                    { label: 'TOKENS', value: debugInfo ? (debugInfo.tokens_in + debugInfo.tokens_out) : '---', icon: Cpu },
-                    { label: 'COST', value: `$${sessionStats.total_cost.toFixed(5)}`, icon: Coins },
-                    { label: 'MEMS', value: sessionStats.memories_created, icon: Database },
+                    { label: 'RT_LATENCY', value: debugInfo?.latency_ms ? (debugInfo.latency_ms >= 1000 ? `${(debugInfo.latency_ms / 1000).toFixed(1)}s` : `${debugInfo.latency_ms}ms`) : '---', icon: Zap },
+                    { label: 'TOKENS_IN', value: debugInfo?.tokens_in ? debugInfo.tokens_in.toLocaleString() : '---', icon: ArrowDownToLine },
+                    { label: 'TOKENS_OUT', value: debugInfo?.tokens_out ? debugInfo.tokens_out.toLocaleString() : '---', icon: ArrowUpFromLine },
+                    { label: 'FACTS', value: debugInfo ? String(debugInfo.extracted_facts?.length || 0) : '---', icon: Cpu },
+                    { label: 'DECISIONS', value: debugInfo ? String(debugInfo.decisions?.length || 0) : '---', icon: Coins },
+                    { label: 'STORED', value: String(sessionStats.memories_created || 0), icon: Database },
                 ].map((m, i) => (
                     <div key={i} className="p-2 border border-[var(--obsidian-border)] rounded-sm group bg-[var(--obsidian-card)]/50">
                         <p className="text-[7px] font-bold uppercase tracking-widest text-[var(--obsidian-stat-label)] mb-1">{m.label}</p>

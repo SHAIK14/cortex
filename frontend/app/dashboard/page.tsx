@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import { DashboardLayout, Header } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Database, 
-  Zap, 
-  Activity, 
-  ShieldCheck, 
-  ArrowRight, 
-  GitBranch, 
-  Cpu, 
-  Globe, 
+import {
+  Database,
+  Zap,
+  Activity,
+  ShieldCheck,
+  ArrowRight,
+  GitBranch,
+  Cpu,
+  Globe,
   Lock,
   Search,
   ChevronRight,
@@ -21,11 +21,14 @@ import {
   Fingerprint,
   Terminal
 } from 'lucide-react';
-import { useAuthStore } from '@/lib/store';
+import { useAuthStore, useConfigStore } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { api } from '@/lib/api';
+import type { StatsResponse } from '@/types';
 
 interface NeuralEvent {
   id: string;
@@ -54,17 +57,42 @@ import { ScrambleText } from '@/components/ui/ScrambleText';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, accessToken } = useAuthStore();
+  const { apiConfig } = useConfigStore();
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, router]);
+
+    // Set access token for API calls
+    if (accessToken) {
+      api.setAccessToken(accessToken);
+    }
+
+    // Fetch stats if credentials are configured
+    const loadStats = async () => {
+      if (!api.hasValidCredentials(apiConfig)) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const credentials = api.buildCredentials(apiConfig);
+        const statsData = await api.getStats(credentials);
+        setStats(statsData);
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStats();
+  }, [isAuthenticated, accessToken, apiConfig, router]);
 
   if (!isAuthenticated) return null;
 
@@ -72,7 +100,9 @@ export default function DashboardPage() {
     <DashboardLayout>
       <Header title="Intelligence Hub" />
 
-      <main className="p-6 max-w-[1600px] mx-auto space-y-8 font-sans">
+      <main className="flex-1 overflow-hidden flex flex-col min-h-0 font-sans">
+        <ScrollArea className="flex-1">
+          <div className="p-6 max-w-[1600px] mx-auto space-y-8">
         
         {/* Hub Header */}
         <motion.div 
@@ -122,9 +152,9 @@ export default function DashboardPage() {
             {/* Core Stats Bar */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: 'Memories Indexed', value: '1,242', icon: Database, color: 'text-primary' },
-                { label: 'Avg Latency', value: '184ms', icon: Zap, color: 'text-amber-500' },
-                { label: 'Network Load', value: '24.2%', icon: Cpu, color: 'text-blue-500' },
+                { label: 'Memories Indexed', value: stats?.total_memories?.toLocaleString() ?? '—', icon: Database, color: 'text-primary' },
+                { label: 'Memory Types', value: stats?.by_type ? Object.keys(stats.by_type).length.toString() : '—', icon: Zap, color: 'text-amber-500' },
+                { label: 'Status', value: stats ? 'ONLINE' : 'OFFLINE', icon: Cpu, color: stats ? 'text-green-500' : 'text-amber-500' },
               ].map((stat, i) => (
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -285,6 +315,8 @@ export default function DashboardPage() {
 
           </div>
         </div>
+          </div>
+        </ScrollArea>
       </main>
     </DashboardLayout>
   );

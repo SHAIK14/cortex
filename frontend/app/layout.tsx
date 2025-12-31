@@ -22,7 +22,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased crt-screen min-h-screen">
         <div className="vignette" />
-        <div className="vignette" />
         <div className="noise-overlay" />
         <SoundProvider>
           <NeuralCursor />

@@ -1,49 +1,58 @@
 from fastapi import APIRouter, HTTPException
 
-from database.supabase import supabase, supabase_admin
+from database.supabase import auth_supabase
 from auth.models import SignupRequest, LoginRequest
-from auth.api_key import generate_api_key
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-
-
 @router.post("/signup")
-async def signup(request:SignupRequest):
-    
+async def signup(request: SignupRequest):
+    """
+    Create a new user account.
+
+    Uses YOUR Supabase Auth - no API keys generated.
+    User will configure their own API keys (OpenAI, Supabase, etc.) in Settings.
+    """
     try:
-        auth_response = supabase.auth.sign_up({
+        auth_response = auth_supabase.auth.sign_up({
             "email": request.email,
             "password": request.password
         })
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
     if not auth_response.user:
-        raise HTTPException(status_code=400, detail="Login failed")
-    user_id = auth_response.user.id
-    api_key = generate_api_key()
-    supabase_admin.table("api_keys").insert({
-        "developer_id": user_id,
-        "key": api_key,
-        "name": "Default"
-    }).execute()
-    return {
-        "message": "Signup successful",
-        "api_key": api_key,
-        "note": "Save this API key - it won't be shown again!"
-    }
+        raise HTTPException(status_code=400, detail="Signup failed")
+
+    # Check if email confirmation is required
+    if auth_response.session:
+        return {
+            "message": "Signup successful",
+            "user_id": auth_response.user.id,
+            "access_token": auth_response.session.access_token,
+        }
+    else:
+        # Email confirmation required
+        return {
+            "message": "Signup successful. Please check your email to confirm your account.",
+            "user_id": auth_response.user.id,
+        }
 
 
 @router.post("/login")
 async def login(request: LoginRequest):
+    """
+    Login with email and password.
+
+    Returns JWT access_token for authenticating subsequent requests.
+    """
     try:
-        auth_response = supabase.auth.sign_in_with_password({
+        auth_response = auth_supabase.auth.sign_in_with_password({
             "email": request.email,
             "password": request.password
         })
     except Exception as e:
-        print(f"Login error: {type(e).__name__}: {e}")  # Debug logging
         raise HTTPException(status_code=401, detail=f"Invalid credentials: {str(e)}")
 
     if not auth_response.user:
@@ -52,19 +61,27 @@ async def login(request: LoginRequest):
     if not auth_response.session:
         raise HTTPException(status_code=401, detail="Login failed - no session returned")
 
-    user_id = auth_response.user.id
-    api_key_result = supabase_admin.table("api_keys")\
-        .select("key")\
-        .eq("developer_id", user_id)\
-        .eq("is_active", True)\
-        .limit(1)\
-        .execute()
-    
-    api_key = api_key_result.data[0]["key"] if api_key_result.data else None
-    
     return {
         "message": "Login successful",
+        "user_id": auth_response.user.id,
+        "email": auth_response.user.email,
         "access_token": auth_response.session.access_token,
-        "api_key": api_key  # TODO: Remove after testing
+        "refresh_token": auth_response.session.refresh_token,
     }
 
+
+@router.post("/refresh")
+async def refresh_token(refresh_token: str):
+    """Refresh an expired access token."""
+    try:
+        auth_response = auth_supabase.auth.refresh_session(refresh_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Token refresh failed: {str(e)}")
+
+    if not auth_response.session:
+        raise HTTPException(status_code=401, detail="Token refresh failed")
+
+    return {
+        "access_token": auth_response.session.access_token,
+        "refresh_token": auth_response.session.refresh_token,
+    }

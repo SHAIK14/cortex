@@ -12,11 +12,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarOpen } = useUIStore();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden flex flex-col">
       <Sidebar />
       <main
         className={cn(
-          'min-h-screen transition-all duration-300',
+          'h-full transition-all duration-300 flex flex-col overflow-hidden',
           sidebarOpen ? 'ml-64' : 'ml-16'
         )}
       >

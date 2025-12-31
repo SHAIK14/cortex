@@ -1,13 +1,25 @@
 import json
+from openai import AsyncOpenAI
 from llm.openai import chat_completion
 from memory.prompts import DECISION_PROMPT
 
 
 async def decide_actions(
     new_facts: list[dict],
-    existing_memories: list[list[dict]]
+    existing_memories: list[list[dict]],
+    llm_client: AsyncOpenAI
 ) -> list[dict]:
+    """
+    Decide what action to take for each extracted fact.
 
+    Args:
+        new_facts: List of newly extracted facts
+        existing_memories: List of similar memories per fact
+        llm_client: OpenAI client (created from user's API key)
+
+    Returns:
+        List of decisions (ADD, UPDATE, DELETE, CONFLICT, NONE)
+    """
     if not new_facts:
         return []
 
@@ -37,6 +49,7 @@ Existing Memories (per fact):
 """
 
     response = await chat_completion(
+        client=llm_client,
         system_prompt=DECISION_PROMPT,
         user_prompt=user_prompt,
         response_format={"type": "json_object"}

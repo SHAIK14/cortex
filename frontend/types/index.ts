@@ -1,7 +1,7 @@
 // Memory types
 export type MemoryType = 'identity' | 'fact' | 'preference' | 'event' | 'context';
 export type MemoryStatus = 'active' | 'outdated' | 'archived';
-export type DecisionAction = 'ADD' | 'UPDATE' | 'DELETE' | 'CONFLICT' | 'NONE';
+export type DecisionAction = 'ADD' | 'UPDATE' | 'DELETE' | 'CONFLICT' | 'NONE' | 'DELETE+ADD';
 
 export interface Memory {
   id: string;
@@ -29,9 +29,8 @@ export interface ExtractedFact {
 
 export interface Decision {
   action: DecisionAction;
-  reason: string;
-  memory_id?: string;
-  new_text?: string;
+  reasoning?: string;
+  target_id?: string;
   new_confidence?: number;
 }
 
@@ -39,6 +38,7 @@ export interface RetrievedMemory extends Memory {
   similarity?: number;
   hybrid_score?: number;
   rerank_score?: number;
+  relevance_score?: number;
 }
 
 // Chat types
@@ -54,7 +54,6 @@ export interface DebugInfo {
   tokens_in: number;
   tokens_out: number;
   latency_ms: number;
-  cost: number;
   extracted_facts: ExtractedFact[];
   decisions: Decision[];
   retrieved_memories: RetrievedMemory[];
@@ -75,7 +74,15 @@ export interface SessionStats {
   message_count: number;
 }
 
-// API configuration
+// Credentials sent to server (user's API keys)
+export interface Credentials {
+  openai_key: string;
+  supabase_url: string;
+  supabase_key: string;
+  cohere_key?: string;
+}
+
+// API configuration (stored in localStorage)
 export interface ApiConfig {
   openai_key?: string;
   supabase_url?: string;
@@ -87,5 +94,57 @@ export interface ApiConfig {
 export interface User {
   id: string;
   email: string;
-  created_at: string;
+  created_at?: string;
+}
+
+// API Response types
+export interface AddMemoryResponse {
+  memories: Array<{
+    action: DecisionAction;
+    memory?: Memory;
+    error?: string;
+    reasoning?: string;
+    lowered_memory_id?: string;
+    new_confidence?: number;
+  }>;
+  extracted_count: number;
+  stored_count: number;
+}
+
+export interface SearchMemoryResponse {
+  memories: RetrievedMemory[];
+  query: string;
+  count: number;
+}
+
+export interface ListMemoriesResponse {
+  memories: Memory[];
+  total_count: number;
+}
+
+export interface StatsResponse {
+  total_memories: number;
+  by_type: Record<string, number>;
+  user_id: string;
+}
+
+export interface AuthResponse {
+  message: string;
+  user_id: string;
+  email?: string;
+  access_token: string;
+  refresh_token?: string;
+}
+
+export interface ChatResponse {
+  response: string;
+  retrieved_memories: RetrievedMemory[];
+  debug_info: {
+    extracted_facts: ExtractedFact[];
+    decisions: Decision[];
+    latency_ms: number;
+    memories_used: number;
+    tokens_in: number;
+    tokens_out: number;
+  };
 }

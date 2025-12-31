@@ -9,7 +9,7 @@ interface DecisionDisplayProps {
   decisions: Decision[];
 }
 
-const actionConfig = {
+const actionConfig: Record<string, { icon: typeof Plus; color: string; label: string }> = {
   ADD: {
     icon: Plus,
     color: 'text-green-400 border-green-400/30 bg-green-400/10',
@@ -25,6 +25,11 @@ const actionConfig = {
     color: 'text-red-400 border-red-400/30 bg-red-400/10',
     label: 'PRUNE_OPS',
   },
+  'DELETE+ADD': {
+    icon: RefreshCw,
+    color: 'text-orange-400 border-orange-400/30 bg-orange-400/10',
+    label: 'REPLACE_OP',
+  },
   CONFLICT: {
     icon: AlertTriangle,
     color: 'text-amber-400 border-amber-400/30 bg-amber-400/10',
@@ -37,13 +42,19 @@ const actionConfig = {
   },
 };
 
+const defaultConfig = {
+  icon: Minus,
+  color: 'text-slate-400 border-slate-400/30 bg-slate-400/10',
+  label: 'UNKNOWN',
+};
+
 export function DecisionDisplay({ decisions }: DecisionDisplayProps) {
   if (decisions.length === 0) return null;
 
   return (
     <div className="space-y-3">
       {decisions.map((decision, index) => {
-        const config = actionConfig[decision.action];
+        const config = actionConfig[decision.action] || defaultConfig;
         const Icon = config.icon;
 
         return (
@@ -57,13 +68,15 @@ export function DecisionDisplay({ decisions }: DecisionDisplayProps) {
                 {config.label}
               </Badge>
             </div>
-            
-            <div className="flex gap-2">
-                <GitCommit className="h-3 w-3 text-muted-foreground/20 mt-1 shrink-0" />
-                <p className="text-[11px] text-muted-foreground/80 leading-relaxed font-medium font-sans tracking-tight">
-                {decision.reason}
-                </p>
-            </div>
+
+            {decision.reasoning && (
+              <div className="flex gap-2">
+                  <GitCommit className="h-3 w-3 text-muted-foreground/20 mt-1 shrink-0" />
+                  <p className="text-[11px] text-muted-foreground/80 leading-relaxed font-medium font-sans tracking-tight">
+                  {decision.reasoning}
+                  </p>
+              </div>
+            )}
 
             {decision.new_text && (
               <div className="mt-3 p-2 bg-[var(--obsidian-bg)] border border-[var(--obsidian-border)] flex items-start gap-2">
