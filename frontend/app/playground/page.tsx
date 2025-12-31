@@ -14,21 +14,16 @@ import { api } from '@/lib/api';
 import {
   Terminal,
   Activity,
-  ShieldCheck,
-  Settings,
   ChevronRight,
   Cpu,
   Database,
-  Command as CommandIcon,
   Search,
-  Maximize2,
   Minimize2,
-  Eraser,
   Download,
   Trash2,
   ShieldAlert
 } from 'lucide-react';
-import type { Message, DebugInfo, Credentials } from '@/types';
+import type { Message, DebugInfo } from '@/types';
 
 export default function PlaygroundPage() {
   const router = useRouter();
@@ -36,12 +31,6 @@ export default function PlaygroundPage() {
   const { debugPanelOpen, toggleDebugPanel } = useUIStore();
   const { apiConfig } = useConfigStore();
 
-  // Set access token for API calls
-  useEffect(() => {
-    if (accessToken) {
-      api.setAccessToken(accessToken);
-    }
-  }, [accessToken]);
   const {
     messages,
     sessionStats,
@@ -61,6 +50,12 @@ export default function PlaygroundPage() {
     }
   }, [isAuthenticated, router]);
 
+  useEffect(() => {
+    if (accessToken) {
+      api.setAccessToken(accessToken);
+    }
+  }, [accessToken]);
+
   if (!isAuthenticated) return null;
 
   const hasApiKeys = api.hasValidCredentials(apiConfig);
@@ -77,13 +72,9 @@ export default function PlaygroundPage() {
     setStreaming(true);
 
     try {
-      // Build credentials from config
       const credentials = api.buildCredentials(apiConfig);
-
-      // Call chat endpoint - retrieves memories, generates response, extracts facts
       const response = await api.chat(credentials, content);
 
-      // Build debug info from API response
       const debugInfo: DebugInfo = {
         latency_ms: response.debug_info.latency_ms,
         tokens_in: response.debug_info.tokens_in,
@@ -105,7 +96,6 @@ export default function PlaygroundPage() {
 
       setCurrentDebug(debugInfo);
 
-      // Display the actual LLM response
       const assistantMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         role: 'assistant',
@@ -114,7 +104,6 @@ export default function PlaygroundPage() {
       };
       addMessage(assistantMessage);
 
-      // Count stored memories (non-NONE decisions)
       const storedCount = response.debug_info.decisions.filter(
         d => d.action !== 'NONE'
       ).length;
@@ -151,16 +140,16 @@ export default function PlaygroundPage() {
     <DashboardLayout>
       <Header title="Neural Terminal" showDebugToggle />
 
-      <main className="flex-1 flex overflow-hidden bg-[var(--obsidian-bg)] min-h-0">
+      <div className="flex-1 flex overflow-hidden bg-[var(--obsidian-bg)] min-h-0 relative">
         
         {/* Terminal Area */}
         <div className={cn(
-          "flex-1 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] border-r border-[var(--obsidian-border)]",
-          debugPanelOpen ? "w-[60%]" : "w-full"
+          "transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] border-r border-[var(--obsidian-border)] flex flex-col min-h-0",
+          debugPanelOpen ? "w-[60%] flex-none" : "w-full flex-1"
         )}>
           
           {/* Console Header */}
-          <div className="h-10 border-b border-[var(--obsidian-border)] flex items-center justify-between px-4 bg-[var(--obsidian-card)]">
+          <div className="h-10 flex-none border-b border-[var(--obsidian-border)] flex items-center justify-between px-4 bg-[var(--obsidian-card)]">
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                     <Terminal className="h-3.5 w-3.5 text-primary" />
@@ -184,7 +173,7 @@ export default function PlaygroundPage() {
           </div>
 
           {/* Chat Feed */}
-          <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-hidden relative min-h-0">
             {messages.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center p-8">
                     <div className="max-w-md w-full space-y-6 text-center">
@@ -211,7 +200,7 @@ export default function PlaygroundPage() {
           </div>
 
           {/* Command Input Area */}
-          <div className="p-4 bg-[var(--obsidian-bg)]/40 border-t border-[var(--obsidian-border)]">
+          <div className="p-4 bg-[var(--obsidian-bg)]/40 border-t border-[var(--obsidian-border)] flex-none">
              <div className="max-w-4xl mx-auto w-full">
                 <ChatInput onSend={handleSendMessage} loading={isStreaming} />
              </div>
@@ -226,9 +215,10 @@ export default function PlaygroundPage() {
               animate={{ width: '40%', opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="h-full border-l border-[var(--obsidian-border)] bg-[var(--obsidian-bg)] flex flex-col min-h-0 overflow-hidden"
+              style={{ flexShrink: 0 }}
+              className="h-full border-l border-[var(--obsidian-border)] bg-[var(--obsidian-bg)] flex flex-col overflow-hidden relative"
             >
-              <div className="h-10 border-b border-[var(--obsidian-border)] flex items-center justify-between px-4 bg-[var(--obsidian-card)]">
+              <div className="h-10 flex-none border-b border-[var(--obsidian-border)] flex items-center justify-between px-4 bg-[var(--obsidian-card)]">
                 <div className="flex items-center gap-2">
                     <Activity className="h-3.5 w-3.5 text-primary" />
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/80">Intelligence_Trace</span>
@@ -242,13 +232,13 @@ export default function PlaygroundPage() {
                     <Minimize2 className="h-3 w-3 text-muted-foreground" />
                 </Button>
               </div>
-              <div className="flex-1 overflow-hidden min-h-0">
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
                 <DebugPanel debugInfo={currentDebug} sessionStats={sessionStats} />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </div>
     </DashboardLayout>
   );
 }

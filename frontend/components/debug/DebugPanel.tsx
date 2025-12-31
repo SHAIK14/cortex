@@ -13,8 +13,8 @@ interface DebugPanelProps {
 
 export function DebugPanel({ debugInfo, sessionStats }: DebugPanelProps) {
   return (
-    <div className="flex flex-1 flex-col bg-[var(--obsidian-bg)] font-mono overflow-hidden min-h-0">
-      <div className="h-1/2 border-b border-[var(--obsidian-border)] relative">
+    <div className="flex flex-1 flex-col bg-[var(--obsidian-bg)] font-mono overflow-hidden min-h-0 h-full">
+      <div className="flex-none h-[300px] border-b border-[var(--obsidian-border)] relative overflow-hidden">
          <IntelligenceGraph debugInfo={debugInfo} />
       </div>
 
@@ -97,7 +97,7 @@ export function DebugPanel({ debugInfo, sessionStats }: DebugPanelProps) {
       </ScrollArea>
       
       {/* Footer Branding */}
-      <div className="p-4 border-t border-[var(--obsidian-border)] flex items-center justify-between opacity-50">
+      <div className="flex-none p-4 border-t border-[var(--obsidian-border)] flex items-center justify-between opacity-50 bg-[var(--obsidian-bg)]">
         <span className="text-[8px] font-bold tracking-[0.3em] uppercase">System_Active</span>
         <div className="flex items-center gap-1.5">
             <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />

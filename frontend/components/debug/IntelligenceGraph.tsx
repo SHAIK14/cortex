@@ -84,7 +84,7 @@ export function IntelligenceGraph({ debugInfo }: IntelligenceGraphProps) {
               <motion.circle
                 cx={node.x}
                 cy={node.y}
-                r="30"
+                r={30}
                 className={cn(
                   "fill-[var(--obsidian-card)] stroke-[var(--obsidian-border)]",
                   isActive && "stroke-primary/30"
@@ -116,7 +116,7 @@ export function IntelligenceGraph({ debugInfo }: IntelligenceGraphProps) {
                 <motion.circle
                    cx={node.x}
                    cy={node.y}
-                   r="30"
+                   r={30}
                    fill="none"
                    stroke="var(--primary)"
                    strokeWidth="1"

@@ -100,7 +100,7 @@ export default function DashboardPage() {
     <DashboardLayout>
       <Header title="Intelligence Hub" />
 
-      <main className="flex-1 overflow-hidden flex flex-col min-h-0 font-sans">
+      <div className="flex-1 overflow-hidden flex flex-col min-h-0 font-sans bg-[var(--obsidian-bg)]">
         <ScrollArea className="flex-1">
           <div className="p-6 max-w-[1600px] mx-auto space-y-8">
         
@@ -317,7 +317,7 @@ export default function DashboardPage() {
         </div>
           </div>
         </ScrollArea>
-      </main>
+      </div>
     </DashboardLayout>
   );
 }

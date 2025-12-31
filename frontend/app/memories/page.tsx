@@ -117,7 +117,7 @@ export default function MemoriesPage() {
     <DashboardLayout>
       <Header title="Neural Vault" />
 
-      <main className="flex-1 bg-[var(--obsidian-bg)] relative overflow-hidden flex flex-col min-h-0">
+      <div className="flex-1 overflow-hidden relative flex flex-col min-h-0 bg-[var(--obsidian-bg)]">
         <NeuralBackground />
         
         <ScrollArea className="flex-1">
@@ -225,7 +225,7 @@ export default function MemoriesPage() {
             </div>
           </div>
         </ScrollArea>
-      </main>
+      </div>
     </DashboardLayout>
   );
 }
