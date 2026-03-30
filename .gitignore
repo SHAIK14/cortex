@@ -1,0 +1,19 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# virtual env
+venv/
+server/venv/
+
+# env files
+.env
+server/.env
+
+# claude
+.claude/
+
+# mac
+.DS_Store
+server/.DS_Store
