@@ -31,7 +31,7 @@ async def ingest_memories(request: IngestRequest, user_id: str = Depends(get_cur
     return {"status": "ok", "processed": len(memories)}
 
 
-@router.get("/memories/search")
+@router.post("/memories/search")
 async def search(request: SearchRequest, user_id: str = Depends(get_current_user)):
     embedding = embed_single(request.query)
     results = await search_memories(embedding, user_id)
