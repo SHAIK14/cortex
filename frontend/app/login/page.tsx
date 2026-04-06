@@ -16,6 +16,13 @@ export default function LoginPage() {
   const [errorText, setErrorText] = useState("");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "signup") {
+      setMode("signup");
+    }
+  }, []);
+
+  useEffect(() => {
     async function redirectIfAuthenticated() {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
@@ -50,7 +57,7 @@ export default function LoginPage() {
         return;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });

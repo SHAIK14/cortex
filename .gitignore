@@ -10,6 +10,7 @@ server/venv/
 # env files
 .env
 server/.env
+frontend/.env.local
 
 # claude
 .claude/

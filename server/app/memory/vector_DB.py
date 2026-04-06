@@ -13,7 +13,7 @@ COLLECTION_NAME = "memories"
 
 
 class EmbeddedMemory(BaseModel):
-    user_id: int
+    user_id: str
     memory_text: str
     categories: list[str]
     date: str
@@ -41,7 +41,7 @@ async def create_collection():
         await client.create_payload_index(
             collection_name="memories",
             field_name="user_id",
-            field_schema=models.PayloadSchemaType.INTEGER,
+            field_schema=models.PayloadSchemaType.KEYWORD,
         )
         await client.create_payload_index(
             collection_name="memories",
@@ -73,7 +73,7 @@ async def insert_memories(memories: list[EmbeddedMemory]):
 
 
 async def search_memories(
-    search_vector: list[float], user_id: int, categories: Optional[list[str]] = None
+    search_vector: list[float], user_id: str, categories: Optional[list[str]] = None
 ):
 
     must_conditions: list[models.Condition] = [
@@ -117,7 +117,7 @@ async def update_memory(
     memory_id: str,
     new_text: str,
     categories: list[str],
-    user_id: int,
+    user_id: str,
     embedding: list[float],
 ):
     await client.upsert(
@@ -173,7 +173,7 @@ def sync_get_memory_by_id(memory_id: str):
     return result[0] if result else None
 
 
-def sync_update_memory(memory_id: str, new_text: str, categories: list[str], user_id: int, embedding: list[float]):
+def sync_update_memory(memory_id: str, new_text: str, categories: list[str], user_id: str, embedding: list[float]):
     sync_client.upsert(
         collection_name=COLLECTION_NAME,
         points=[

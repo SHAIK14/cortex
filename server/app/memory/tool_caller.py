@@ -27,7 +27,7 @@ class MemoryToolCaller(dspy.Signature):
     existing_memories: str = dspy.InputField(
         desc="existing memories from the database formatted string"
     )
-    user_id: int = dspy.InputField(desc="the user id")
+    user_id: str = dspy.InputField(desc="the user id")
     action_taken: str = dspy.OutputField(desc="the action taken and result")
 
 
@@ -38,7 +38,7 @@ agent = dspy.ReAct(
 )
 
 
-async def process_memory(new_memory: str, existing_memories: str, user_id: int):
+async def process_memory(new_memory: str, existing_memories: str, user_id: str):
     def _run():
         with dspy.context(lm=dspy.LM(model="gpt-4o")):
             return agent(

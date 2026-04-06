@@ -10,7 +10,7 @@ from app.memory.vector_DB import (
 )
 
 
-def add(user_id: int, memory_text: str, categories: list[str] = []) -> str:
+def add(user_id: str, memory_text: str, categories: list[str] = []) -> str:
     embedding = embed_single(memory_text)
     memory = EmbeddedMemory(
         user_id=user_id,
