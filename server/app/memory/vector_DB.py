@@ -96,6 +96,24 @@ async def search_memories(
     return res
 
 
+async def list_memories(user_id: str, limit: int = 50):
+    """Return the user's stored memories without a similarity query."""
+    points, _ = await client.scroll(
+        collection_name=COLLECTION_NAME,
+        scroll_filter=Filter(
+            must=[
+                models.FieldCondition(
+                    key="user_id", match=models.MatchValue(value=user_id)
+                )
+            ]
+        ),
+        limit=limit,
+        with_payload=True,
+        with_vectors=False,
+    )
+    return points
+
+
 async def delete_memory(memory_id: str):
     await client.delete(
         collection_name=COLLECTION_NAME,

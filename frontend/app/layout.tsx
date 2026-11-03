@@ -1,22 +1,27 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Manrope } from "next/font/google";
+import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono-face",
+});
 
 const bodyFont = Manrope({
-  variable: "--font-body",
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const monoFont = IBM_Plex_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
-});
-
 export const metadata: Metadata = {
-  title: "Cortex Memory Console",
-  description: "A polished interface for memory-aware AI chats.",
+  title: "Cortex",
+  description: "A memory layer for AI chat.",
 };
 
 export default function RootLayout({
@@ -25,8 +30,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${bodyFont.variable} ${monoFont.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html
+      lang="en"
+      className={cn(
+        "h-full antialiased",
+        geist.variable,
+        geistMono.variable,
+        bodyFont.variable,
+        "font-sans",
+      )}
+    >
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

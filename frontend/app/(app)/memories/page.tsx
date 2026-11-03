@@ -1,7 +1,11 @@
 "use client";
 
 import { useSessionUser } from "@/components/session-user";
-import { FormEvent, useState } from "react";
+import ContextCards, {
+  type ContextChunk,
+} from "@/components/primitives/ContextCards";
+import LoadingState from "@/components/primitives/LoadingState";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -10,13 +14,64 @@ type MemoryResult = {
   score: number;
 };
 
+function toChunks(
+  results: MemoryResult[],
+  mode: "all" | "search",
+): ContextChunk[] {
+  return results.map((memory, index) => {
+    const words = memory.memory_text.trim().split(/\s+/);
+    const title = words.slice(0, 6).join(" ") + (words.length > 6 ? "…" : "");
+    return {
+      title: title || `Memory ${index + 1}`,
+      chars: `${memory.memory_text.length} characters`,
+      body: memory.memory_text,
+      source: mode === "search" ? "Qdrant · search hit" : "Qdrant · saved",
+      badge: mode === "search" ? memory.score.toFixed(2) : "MEM",
+      tone: mode === "search"
+        ? memory.score >= 0.45
+          ? "bg-green"
+          : "bg-accent"
+        : "bg-accent",
+    };
+  });
+}
+
 export default function MemoriesPage() {
   const { accessToken } = useSessionUser();
   const [query, setQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<MemoryResult[]>([]);
+  const [allMemories, setAllMemories] = useState<MemoryResult[]>([]);
+  const [searchResults, setSearchResults] = useState<MemoryResult[] | null>(
+    null,
+  );
   const [errorText, setErrorText] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
+
+  const loadAll = useCallback(async () => {
+    setIsLoading(true);
+    setErrorText("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/memories`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`List failed (${response.status})`);
+      }
+      const data = (await response.json()) as { memories: MemoryResult[] };
+      setAllMemories(data.memories ?? []);
+    } catch {
+      setAllMemories([]);
+      setErrorText("Could not load memories. Is the backend running?");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    void loadAll();
+  }, [loadAll]);
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +80,6 @@ export default function MemoriesPage() {
 
     setErrorText("");
     setIsSearching(true);
-    setHasSearched(true);
 
     try {
       const response = await fetch(`${API_BASE_URL}/memories/search`, {
@@ -44,18 +98,27 @@ export default function MemoriesPage() {
       }
 
       const data = (await response.json()) as { memories: MemoryResult[] };
-      setResults(data.memories ?? []);
+      setSearchResults(data.memories ?? []);
     } catch {
-      setResults([]);
+      setSearchResults([]);
       setErrorText("Search failed. Confirm backend is running and reachable.");
     } finally {
       setIsSearching(false);
     }
   }
 
+  function clearSearch() {
+    setQuery("");
+    setSearchResults(null);
+  }
+
+  const showingSearch = searchResults !== null;
+  const display = showingSearch ? searchResults : allMemories;
+  const busy = isLoading || isSearching;
+
   return (
-    <section className="surface h-full min-h-[70vh] rounded-2xl p-4 md:p-6">
-      <form onSubmit={handleSearch} className="mb-5 flex gap-3">
+    <section className="cortex-panel h-full min-h-[70vh] p-4 md:p-6">
+      <form onSubmit={handleSearch} className="mb-5 flex gap-2">
         <label htmlFor="memory-query" className="sr-only">
           Search memories
         </label>
@@ -64,50 +127,55 @@ export default function MemoriesPage() {
           type="text"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="e.g. where does the user live?"
-          className="h-11 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-(--accent) md:text-[15px]"
+          placeholder="Search saved memories…"
+          className="h-10 flex-1 rounded-[10px] bg-field px-3 text-[13.5px] text-ink shadow-hairline outline-none transition placeholder:text-ink-3 focus:shadow-btn"
         />
         <button
           type="submit"
           disabled={isSearching || !query.trim()}
-          className="h-11 rounded-xl bg-(--accent) px-5 text-sm font-semibold text-white transition hover:bg-(--accent-strong) disabled:cursor-not-allowed disabled:opacity-50"
+          className="h-10 rounded-[10px] bg-accent px-4 text-[13px] font-semibold text-white transition hover:bg-accent-ink enabled:active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isSearching ? "Searching..." : "Search"}
+          {isSearching ? "Searching…" : "Search"}
         </button>
+        {showingSearch ? (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="h-10 rounded-[10px] bg-hover-2 px-4 text-[13px] font-medium text-ink transition hover:bg-line-strong"
+          >
+            Show all
+          </button>
+        ) : null}
       </form>
 
       {errorText ? (
-        <p className="mb-3 text-sm font-medium text-(--danger)">{errorText}</p>
+        <p className="mb-3 text-[13px] font-medium text-red">{errorText}</p>
       ) : null}
 
-      {!hasSearched ? (
-        <p className="surface-muted rounded-2xl p-6 text-sm text-slate-600">
-          Search to see relevant memories and confidence scores.
-        </p>
+      {busy ? (
+        <LoadingState
+          variant="Drive"
+          label={isSearching ? "Searching memories" : "Loading memories"}
+        />
       ) : null}
 
-      {hasSearched && results.length === 0 && !errorText ? (
-        <p className="surface-muted rounded-2xl p-6 text-sm text-slate-600">
-          No related memories found for this query.
-        </p>
-      ) : null}
-
-      {results.length > 0 ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {results.map((memory, index) => (
-            <article
-              key={`${memory.memory_text}-${index}`}
-              className="surface-muted rounded-2xl p-4"
-            >
-              <p className="mb-3 text-sm leading-relaxed text-slate-900">
-                {memory.memory_text}
-              </p>
-              <p className="font-mono text-xs uppercase tracking-[0.14em] text-slate-500">
-                Similarity: {memory.score.toFixed(3)}
-              </p>
-            </article>
-          ))}
+      {!busy && display.length === 0 ? (
+        <div className="rounded-[12px] bg-inset px-4 py-5 text-[13px] text-ink-2 shadow-hairline">
+          {showingSearch
+            ? "No related memories found for this query."
+            : "No memories yet. Chat a few facts first, wait a few seconds, then refresh this page."}
         </div>
+      ) : null}
+
+      {!busy && display.length > 0 ? (
+        <ContextCards
+          className="max-w-3xl"
+          chunks={toChunks(display, showingSearch ? "search" : "all")}
+          labels={{
+            header: showingSearch ? "Search results" : "Your memories",
+            count: String(display.length),
+          }}
+        />
       ) : null}
     </section>
   );

@@ -1,7 +1,12 @@
 "use client";
 
 import { useSessionUser } from "@/components/session-user";
-import { FormEvent, useMemo, useState } from "react";
+import LoadingState from "@/components/primitives/LoadingState";
+import PromptBar from "@/components/primitives/PromptBar";
+import StreamingText, {
+  type StreamingToken,
+} from "@/components/primitives/StreamingText";
+import { useMemo, useRef, useState } from "react";
 
 const API_BASE_URL = "http://localhost:8000";
 const MAX_HISTORY = 10;
@@ -11,6 +16,7 @@ type Role = "user" | "assistant";
 type ChatMessage = {
   role: Role;
   content: string;
+  streaming?: boolean;
 };
 
 async function postChat(
@@ -26,7 +32,7 @@ async function postChat(
     },
     body: JSON.stringify({
       question,
-      past_messages: pastMessages,
+      past_messages: pastMessages.map(({ role, content }) => ({ role, content })),
     }),
   });
   if (!response.ok) {
@@ -44,9 +50,16 @@ async function ingestMemory(accessToken: string, message: ChatMessage) {
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      messages: [message],
+      messages: [{ role: message.role, content: message.content }],
     }),
   });
+}
+
+function toTokens(text: string): StreamingToken[] {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => ({ text: word }));
 }
 
 export default function ChatPage() {
@@ -55,35 +68,41 @@ export default function ChatPage() {
     {
       role: "assistant",
       content:
-        "Cortex is live. Ask anything and I will use your saved memories for context.",
+        "Cortex is live. Tell me facts about yourself — I’ll store them and use them next time.",
     },
   ]);
-  const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [errorText, setErrorText] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const lastTenMessages = useMemo(
-    () => messages.slice(-MAX_HISTORY),
+    () =>
+      messages
+        .filter((m) => !m.streaming)
+        .slice(-MAX_HISTORY)
+        .map(({ role, content }) => ({ role, content })),
     [messages],
   );
 
-  async function handleSend(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const question = inputValue.trim();
-    if (!question || isSending) return;
+  async function handleSend(question: string) {
+    const trimmed = question.trim();
+    if (!trimmed || isSending) return;
 
     setErrorText("");
     setIsSending(true);
-    setInputValue("");
 
-    const userMessage: ChatMessage = { role: "user", content: question };
+    const userMessage: ChatMessage = { role: "user", content: trimmed };
     setMessages((previous) => [...previous, userMessage]);
 
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
+
     try {
-      const { answer } = await postChat(accessToken, question, lastTenMessages);
+      const { answer } = await postChat(accessToken, trimmed, lastTenMessages);
       setMessages((previous) => [
         ...previous,
-        { role: "assistant", content: answer },
+        { role: "assistant", content: answer, streaming: true },
       ]);
       void ingestMemory(accessToken, userMessage);
     } catch {
@@ -100,78 +119,79 @@ export default function ChatPage() {
       ]);
     } finally {
       setIsSending(false);
-    }
-  }
-
-  function handleComposerKeyDown(
-    event: React.KeyboardEvent<HTMLTextAreaElement>,
-  ) {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      const form = event.currentTarget.form;
-      if (form) {
-        form.requestSubmit();
-      }
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
     }
   }
 
   return (
-    <section className="surface flex h-full min-h-[70vh] flex-col rounded-2xl p-4 md:p-6">
-      <div className="mb-4 flex-1 space-y-4 overflow-y-auto pr-1">
+    <section className="cortex-panel flex h-full min-h-[70vh] flex-col overflow-hidden">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
         {messages.map((message, index) => {
           const isUser = message.role === "user";
           return (
             <article
-              key={`${message.role}-${index}`}
-              className={`max-w-[88%] rounded-2xl px-4 py-3 md:max-w-[74%] ${
-                isUser
-                  ? "ml-auto border border-blue-200 bg-blue-50 text-slate-900"
-                  : "mr-auto border border-slate-200 bg-slate-50 text-slate-900"
-              }`}
+              key={`${message.role}-${index}-${message.content.slice(0, 24)}`}
+              className={`max-w-[92%] md:max-w-[78%] ${isUser ? "ml-auto" : "mr-auto"}`}
+              style={{ animation: "fade-up 350ms cubic-bezier(0.23,1,0.32,1) both" }}
             >
-              <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-slate-500">
-                {isUser ? "You" : "Assistant"}
+              <p className="mb-1.5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-ink-3">
+                {isUser ? "You" : "Cortex"}
               </p>
-              <p className="text-sm leading-relaxed md:text-[15px]">
-                {message.content}
-              </p>
+              {isUser ? (
+                <div className="rounded-[14px] bg-accent-tint px-3.5 py-2.5 text-[13.5px] leading-relaxed text-ink shadow-hairline">
+                  {message.content}
+                </div>
+              ) : message.streaming ? (
+                <StreamingText
+                  content={toTokens(message.content)}
+                  sources={[]}
+                  followUps={[]}
+                  loop={false}
+                  fill
+                  onDone={() => {
+                    setMessages((previous) =>
+                      previous.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, streaming: false }
+                          : item,
+                      ),
+                    );
+                  }}
+                />
+              ) : (
+                <p className="text-[13.5px] leading-relaxed text-ink">
+                  {message.content}
+                </p>
+              )}
             </article>
           );
         })}
+
+        {isSending ? (
+          <div className="mr-auto">
+            <LoadingState variant="Drive" label="Recalling memories" />
+          </div>
+        ) : null}
+
+        <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend}>
-        <label htmlFor="chat-input" className="sr-only">
-          Ask a question
-        </label>
-        <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition focus-within:border-slate-300 focus-within:shadow-[0_14px_34px_rgba(15,23,42,0.1)]">
-          <div className="flex items-end gap-2">
-            <textarea
-              id="chat-input"
-              value={inputValue}
-              onChange={(event) => setInputValue(event.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              placeholder="Ask Cortex anything..."
-              rows={1}
-              className="max-h-36 min-h-11 flex-1 resize-y rounded-xl border-0 bg-transparent px-2 py-2 text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 md:text-[15px]"
-            />
-            <button
-              type="submit"
-              disabled={isSending || !inputValue.trim()}
-              className="inline-flex h-10 min-w-10 items-center justify-center rounded-full bg-(--accent) px-4 text-sm font-semibold text-white transition hover:bg-(--accent-strong) disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Send message"
-            >
-              {isSending ? "..." : "Send"}
-            </button>
-          </div>
-        </div>
-        <p className="mt-2 px-1 text-xs text-slate-500">
-          Press Enter to send, Shift+Enter for a new line.
-        </p>
+      <div className="border-t border-line px-3 py-3 md:px-5 md:py-4">
+        <PromptBar
+          demo={false}
+          placeholder="Ask Cortex anything…"
+          onSend={handleSend}
+        />
         {errorText ? (
-          <p className="mt-2 text-xs font-medium text-(--danger)">{errorText}</p>
-        ) : null}
-      </form>
+          <p className="mt-2 text-[12px] font-medium text-red">{errorText}</p>
+        ) : (
+          <p className="mt-2 text-[11.5px] text-ink-3">
+            Memories write in the background — wait a few seconds before asking about a new fact.
+          </p>
+        )}
+      </div>
     </section>
   );
 }

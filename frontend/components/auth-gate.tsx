@@ -54,8 +54,8 @@ export function AuthGate({ children }: AuthGateProps) {
   if (isChecking || !session) {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl items-center justify-center px-6">
-        <div className="surface rounded-2xl px-6 py-4 text-sm text-slate-600">
-          Checking session...
+        <div className="rounded-[12px] bg-surface px-5 py-3 text-[13px] text-ink-2 shadow-card">
+          Checking session…
         </div>
       </main>
     );

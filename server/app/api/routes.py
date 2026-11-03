@@ -11,7 +11,7 @@ from app.memory.embed_memory import embed_single
 from app.memory.extract_memory import memory_extract_from_messages
 from app.memory.response_generator import generate_answer
 from app.memory.tool_caller import process_memory
-from app.memory.vector_DB import search_memories
+from app.memory.vector_DB import list_memories, search_memories
 from fastapi import APIRouter, Depends
 
 router = APIRouter()
@@ -29,6 +29,17 @@ async def ingest_memories(request: IngestRequest, user_id: str = Depends(get_cur
         )
         await process_memory(memory.information, existing_str, user_id)
     return {"status": "ok", "processed": len(memories)}
+
+
+@router.get("/memories")
+async def get_memories(user_id: str = Depends(get_current_user)):
+    points = await list_memories(user_id)
+    memories = [
+        MemoryResult(memory_text=p.payload["memory_text"], score=1.0)
+        for p in points
+        if p.payload and p.payload.get("memory_text")
+    ]
+    return SearchResponse(memories=memories)
 
 
 @router.post("/memories/search")
